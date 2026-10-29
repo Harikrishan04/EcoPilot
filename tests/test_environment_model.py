@@ -29,6 +29,9 @@ from environment_model import (
     wind_components,
     calculate_R_env,
     calculate_R_env_from_state,
+    battery_power_consumption,
+    compute_soc_drain,
+    compute_3d_kinematic_drift,
     RD_DRY_AIR,
     RHO_0_STANDARD,
     KELVIN_OFFSET,
@@ -189,6 +192,46 @@ class TestEnvironmentalPhysics(unittest.TestCase):
         l_storm = adaptive_lambda(1.0, lambda0=1.0, beta=3.0)
         # 1.0 * (1 + 3 * 1.0) = 4.0
         self.assertAlmostEqual(l_storm, 4.0, places=4)
+
+    def test_battery_power_and_soc_drain(self):
+        """Verify electrical battery power consumption and State-of-Charge depletion."""
+        # Standard hover power at ISA sea level: 15W avionics + 180W hover = 195W
+        p_std_hover = battery_power_consumption(rho=1.225, airspeed_mps=0.0, is_hover=True)
+        self.assertAlmostEqual(p_std_hover, 195.0, delta=0.5)
+
+        # High altitude / warm valley air (lower density -> requires more thrust power)
+        p_low_rho = battery_power_consumption(rho=1.05, airspeed_mps=0.0, is_hover=True)
+        self.assertGreater(p_low_rho, p_std_hover)
+
+        # Forward translational flight creates parasitic drag
+        p_forward = battery_power_consumption(rho=1.225, airspeed_mps=10.0, is_hover=False)
+        self.assertGreater(p_forward, p_std_hover)
+
+        # Climbing consumes vertical potential energy power
+        p_climb = battery_power_consumption(rho=1.225, airspeed_mps=5.0, vertical_speed_mps=2.0)
+        p_level = battery_power_consumption(rho=1.225, airspeed_mps=5.0, vertical_speed_mps=0.0)
+        self.assertGreater(p_climb, p_level)
+
+        # 10 minutes (600s) of hover at 200W from 75Wh battery
+        # Energy = 200 * (600/3600) = 33.33 Wh -> 33.33 / 75 = 44.44%
+        soc_drain = compute_soc_drain(power_watts=200.0, duration_seconds=600.0, battery_capacity_wh=75.0)
+        self.assertAlmostEqual(soc_drain, 44.44, delta=0.1)
+
+    def test_3d_kinematic_wind_drift(self):
+        """Verify 3D ground velocity vector accounts for wind vector displacement."""
+        # Drone commanding 10 m/s East (vx=10, vy=0, vz=0)
+        cmd_vel = (10.0, 0.0, 0.0)
+
+        # Pure tailwind from West (theta_w = 3*pi/2 = 270 deg -> blows toward East +x)
+        wind_from_west = 1.5 * math.pi
+        vx_g, vy_g, vz_g = compute_3d_kinematic_drift(
+            cmd_vel, wind_speed_mps=10.0, wind_dir_rad=wind_from_west, drift_coupling_factor=0.4
+        )
+        # Wind blowing toward East (+x) should boost forward velocity
+        self.assertGreater(vx_g, 10.0)
+        self.assertAlmostEqual(vy_g, 0.0, places=3)
+        self.assertEqual(vz_g, 0.0)
+
 
 
 if __name__ == "__main__":

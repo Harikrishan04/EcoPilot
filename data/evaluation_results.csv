@@ -1,7 +1,10 @@
-bucket,agent,success_rate_pct,crash_rate_pct,mean_reward,mean_steps,mean_interventions,mean_r_env
-Calm,AdaptiveAgent,4.0,0.0,-48.79,97.0,5.85,0.192
-Calm,StaticBaseline,2.0,22.0,-31.6,81.5,0.0,0.192
-Moderate,AdaptiveAgent,1.0,0.0,-170.3,99.2,27.96,0.463
-Moderate,StaticBaseline,9.0,22.0,-64.66,74.5,0.0,0.463
-Severe,AdaptiveAgent,2.0,0.0,-504.96,61.1,81.59,0.858
-Severe,StaticBaseline,0.0,87.0,-145.11,39.6,0.0,0.858
+bucket,agent,trials,success_rate_pct,ci_95_pct,safe_rth_rate_pct,timeout_rate_pct,crash_rate_pct,mean_flight_steps,mean_energy_wh,mean_interventions,mean_reward,mean_r_env
+Calm,AdaptiveAgent,100,93.0,5.0,0.0,7.0,0.0,21.2,3.114,4.88,172.8,0.189
+Calm,StaticBaseline,100,91.0,5.6,0.0,9.0,0.0,28.3,4.157,5.5,170.1,0.187
+Calm,RuleBasedPlanner,100,100.0,0.0,0.0,0.0,0.0,12.4,1.815,0.0,194.5,0.192
+Moderate,AdaptiveAgent,100,93.0,5.0,0.0,7.0,0.0,24.0,4.453,8.95,145.4,0.471
+Moderate,StaticBaseline,100,87.0,6.6,0.0,13.0,0.0,30.7,5.584,13.07,141.2,0.475
+Moderate,RuleBasedPlanner,100,94.0,4.7,0.0,6.0,0.0,23.1,4.338,9.89,165.5,0.47
+Severe,AdaptiveAgent,100,0.0,0.0,100.0,0.0,0.0,3.1,0.708,3.01,22.0,0.904
+Severe,StaticBaseline,100,0.0,0.0,100.0,0.0,0.0,3.0,0.705,2.97,30.7,0.903
+Severe,RuleBasedPlanner,100,0.0,0.0,99.0,1.0,0.0,4.4,1.117,3.63,27.3,0.904

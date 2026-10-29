@@ -73,21 +73,30 @@ class SafetyEnvelope:
 
     def __init__(
         self,
-        r_critical: float = 0.85,       # Maximum tolerable environmental risk score [0, 1]
-        q_max_pa: float = 120.0,         # Maximum allowable dynamic pressure [Pa]
+        r_critical: float = 0.85,            # Maximum tolerable environmental risk score [0, 1]
+        q_max_pa: float = 120.0,             # Maximum allowable dynamic pressure [Pa]
         terrain_safety_margin: float = 0.02, # Altitude buffer above terrain [0, 1]
+        max_hover_steps: int = 4,            # Maximum allowable consecutive hover steps
+        battery_reserve_pct: float = 20.0,   # Minimum battery reserve before forced RTH [%]
+        battery_critical_pct: float = 8.0,   # Critical battery threshold before emergency landing [%]
     ):
         """
-        Initializes the safety envelope.
+        Initializes the enhanced safety envelope.
 
         Args:
             r_critical: Threshold of composite risk R_env triggering abort/hover.
             q_max_pa: Dynamic pressure limit above which gust loading is unsafe.
             terrain_safety_margin: Buffer between cruise altitude and terrain elevation.
+            max_hover_steps: Duration limit for hover station-keeping before forced abort.
+            battery_reserve_pct: Battery State of Charge triggering Return-to-Home.
+            battery_critical_pct: Battery State of Charge forcing Emergency Landing.
         """
         self.r_critical = r_critical
         self.q_max_pa = q_max_pa
         self.terrain_safety_margin = terrain_safety_margin
+        self.max_hover_steps = max_hover_steps
+        self.battery_reserve_pct = battery_reserve_pct
+        self.battery_critical_pct = battery_critical_pct
 
     def evaluate(
         self,
@@ -98,39 +107,52 @@ class SafetyEnvelope:
         dynamic_pressure_pa: float,
         terrain_grid: np.ndarray,
         cruise_altitude: float = 0.40,
+        battery_soc_pct: float = 100.0,
+        consecutive_hover_steps: int = 0,
+        landing_zones: Optional[List[Tuple[int, int]]] = None,
     ) -> SafetyIntervention:
         """
         Evaluates the current state against the hard safety envelope.
 
         If any safety constraint is violated, the policy action is strictly
-        bypassed and replaced with an autonomous safe maneuver (Hover or RTB).
+        bypassed and replaced with an autonomous safe maneuver (Hover, RTB, or Land).
 
         Args:
-            policy_action: Action integer in 0..7 chosen by Q-table.
+            policy_action: Action integer in 0..7 (or hover 8) chosen by Q-table.
             current_pos: Drone current coordinate (row, col).
             home_pos: Drone home/spawn base coordinate (row, col).
             r_env: Composite environmental risk score in [0.0, 1.0].
             dynamic_pressure_pa: Instantaneous dynamic pressure q [Pa].
             terrain_grid: 2D numpy array of normalized terrain heights.
             cruise_altitude: Normalized flight altitude plane.
+            battery_soc_pct: Remaining battery State of Charge [%].
+            consecutive_hover_steps: Number of continuous steps spent in hover.
+            landing_zones: Optional list of precomputed emergency landing coordinates.
 
         Returns:
             SafetyIntervention record containing executed action and flight mode.
         """
         triggers: List[str] = []
         rows, cols = terrain_grid.shape
-        cur_r, cur_c = current_pos
+        cur_r = int(np.clip(round(current_pos[0]), 0, rows - 1))
+        cur_c = int(np.clip(round(current_pos[1]), 0, cols - 1))
 
-        # ── Check 1: Environmental Storm Risk Breach ──────────────────────────
+        # ── Check 1: Critical Battery Depletion ───────────────────────────────
+        if battery_soc_pct <= self.battery_critical_pct:
+            triggers.append(f"CRITICAL_BATTERY ({battery_soc_pct:.1f}% <= {self.battery_critical_pct:.1f}%)")
+        elif battery_soc_pct <= self.battery_reserve_pct:
+            triggers.append(f"LOW_BATTERY_RESERVE ({battery_soc_pct:.1f}% <= {self.battery_reserve_pct:.1f}%)")
+
+        # ── Check 2: Environmental Storm Risk Breach ──────────────────────────
         if r_env > self.r_critical:
             triggers.append(f"CRITICAL_R_ENV ({r_env:.3f} > {self.r_critical:.3f})")
 
-        # ── Check 2: Aerodynamic Gust / Dynamic Pressure Overload ─────────────
+        # ── Check 3: Aerodynamic Gust / Dynamic Pressure Overload ─────────────
         if dynamic_pressure_pa > self.q_max_pa:
             triggers.append(f"EXCESSIVE_DYNAMIC_PRESSURE ({dynamic_pressure_pa:.1f} Pa > {self.q_max_pa:.1f} Pa)")
 
-        # ── Check 3: Imminent Terrain Obstacle or Boundary Breach ──────────────
-        dr, dc = ACTION_DELTAS[policy_action]
+        # ── Check 4: Imminent Terrain Obstacle or Boundary Breach ──────────────
+        dr, dc = ACTION_DELTAS[policy_action] if policy_action < len(ACTION_DELTAS) else (0, 0)
         next_r, next_c = cur_r + dr, cur_c + dc
 
         out_of_bounds = not (0 <= next_r < rows and 0 <= next_c < cols)
@@ -143,9 +165,9 @@ class SafetyEnvelope:
                 triggers.append(f"TERRAIN_COLLISION_RISK (Clearance {clearance:.3f} < {self.terrain_safety_margin:.3f})")
 
         # ── Decision Logic ────────────────────────────────────────────────────
+        current_clearance = cruise_altitude - terrain_grid[cur_r, cur_c]
         if not triggers:
             # All safety criteria satisfied: execute policy action as intended
-            current_clearance = cruise_altitude - terrain_grid[cur_r, cur_c]
             return SafetyIntervention(
                 is_overridden=False,
                 flight_mode=FlightMode.POLICY_DRIVEN,
@@ -157,13 +179,21 @@ class SafetyEnvelope:
             )
 
         # ── Override Triggered: Formulate Safe Action ─────────────────────────
-        # Determine whether to Return to Base or Hover in place
-        if r_env > 0.95 or dynamic_pressure_pa > (self.q_max_pa * 1.3):
-            # Extreme emergency: Hold position immediately (HOVER) to avoid losing altitude/control
+        # Rule: Hover has a strict maximum duration. If exceeded, force RTH or Landing!
+        hover_exhausted = (consecutive_hover_steps >= self.max_hover_steps)
+
+        if battery_soc_pct <= self.battery_critical_pct:
+            # Emergency landing at nearest valley zone
+            safe_action = self._calculate_landing_action(current_pos, landing_zones, terrain_grid, cruise_altitude)
+            chosen_mode = FlightMode.EMERGENCY_LAND
+
+        elif (r_env > 0.95 or dynamic_pressure_pa > (self.q_max_pa * 1.3)) and not hover_exhausted:
+            # Brief emergency station-keeping (max 4 steps)
             safe_action = ACTION_HOVER
             chosen_mode = FlightMode.HOVER_HOLD
+
         else:
-            # Orderly Return-To-Base (RTB): select action that routes toward home_pos
+            # Orderly Return-To-Base (RTB): select retreat action routing toward home_pos
             safe_action = self._calculate_rtb_action(current_pos, home_pos, terrain_grid, cruise_altitude)
             chosen_mode = FlightMode.RETURN_TO_BASE
 
@@ -178,6 +208,21 @@ class SafetyEnvelope:
             dynamic_pressure_pa=dynamic_pressure_pa,
             terrain_clearance=current_clearance,
         )
+
+    def _calculate_landing_action(
+        self,
+        current_pos: Tuple[int, int],
+        landing_zones: Optional[List[Tuple[int, int]]],
+        terrain_grid: np.ndarray,
+        cruise_altitude: float,
+    ) -> int:
+        """Determines best vector toward nearest flat landing zone."""
+        if not landing_zones:
+            return ACTION_HOVER
+        cur_r, cur_c = current_pos
+        # Find nearest landing zone
+        best_lz = min(landing_zones, key=lambda lz: math.hypot(lz[0] - cur_r, lz[1] - cur_c))
+        return self._calculate_rtb_action(current_pos, best_lz, terrain_grid, cruise_altitude)
 
     def _calculate_rtb_action(
         self,

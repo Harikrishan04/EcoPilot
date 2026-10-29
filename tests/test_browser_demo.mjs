@@ -24,8 +24,9 @@ async function sleep(ms) {
   return new Promise((res) => setTimeout(res, ms));
 }
 
-// Launch Chrome in headless mode with remote debugging
+// Launch Chrome in headless mode with remote debugging and stderr capture
 console.log("=== Launching Google Chrome (Headless CDP) ===");
+let chromeStderr = "";
 const chrome = spawn(
   "google-chrome",
   [
@@ -35,9 +36,16 @@ const chrome = spawn(
     "--no-sandbox",
     "--window-size=1440,950",
     HTML_PATH,
-  ],
-  { stdio: "ignore" }
+  ]
 );
+
+chrome.stderr?.on("data", (data) => {
+  chromeStderr += data.toString();
+});
+
+chrome.on("error", (err) => {
+  console.error("Chrome Process Spawn Error:", err);
+});
 
 // Cleanup on exit
 process.on("exit", () => {
@@ -143,7 +151,7 @@ async function runBrowserTests() {
   if (calmMetrics.r_env < 0.25 && calmMetrics.badge.includes("NOMINAL")) {
     console.log("✓ PASS: Calm telemetry within nominal flight limits.");
   } else {
-    console.warn("⚠️ Warning: Calm telemetry unexpected", calmMetrics);
+    throw new Error(`TEST 1 FAILED: Unexpected calm telemetry values: ${JSON.stringify(calmMetrics)}`);
   }
   await client.captureScreenshot("1_calm_nominal.png");
 
@@ -168,7 +176,7 @@ async function runBrowserTests() {
   if (severeMetrics.r_env >= 0.85 && severeMetrics.badge.includes("OVERRIDE")) {
     console.log("✓ PASS: Critical safety override triggered in DOM (badge: OVERRIDE ACTIVE).");
   } else {
-    console.warn("⚠️ Warning: Safety override did not trigger", severeMetrics);
+    throw new Error(`TEST 2 FAILED: Safety override did not trigger under severe squall: ${JSON.stringify(severeMetrics)}`);
   }
   await client.captureScreenshot("2_severe_override_triggered.png");
 
@@ -194,7 +202,7 @@ async function runBrowserTests() {
   if (flightResult.overrides > 0) {
     console.log(`✓ PASS: Safety envelope successfully intercepted and executed safe maneuvers (${flightResult.overrides} overrides logged).`);
   } else {
-    console.warn("⚠️ Warning: No safety interventions recorded during extreme weather.");
+    throw new Error("TEST 3 FAILED: No safety interventions were recorded during extreme squall weather.");
   }
   await client.captureScreenshot("3_policy_interventions_active.png");
 
@@ -214,6 +222,12 @@ async function runBrowserTests() {
     r_env: document.getElementById('valREnv').innerText
   })`);
   console.log("Static Baseline State:", baselineState);
+
+  if (baselineState.selectedAgent === "baseline" && baselineState.badge.includes("NOMINAL")) {
+    console.log("✓ PASS: Agent dropdown toggled to baseline and mission reset cleanly.");
+  } else {
+    throw new Error(`TEST 4 FAILED: Agent selection reset failed: ${JSON.stringify(baselineState)}`);
+  }
   await client.captureScreenshot("4_static_baseline_reset.png");
 
   console.log("\n=== All Browser Tests Completed Successfully ===");

@@ -9,7 +9,7 @@ import unittest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from drone_env import DroneEnv
+from drone_env import DroneEnv, MissionOutcome
 from q_agent import QAgent
 from static_baseline_agent import StaticBaselineAgent
 
@@ -21,28 +21,33 @@ class TestRLPipeline(unittest.TestCase):
         self.env = DroneEnv()
 
     def test_env_reset_state_shape_and_types(self):
-        """Verify environment reset yields valid state tuple within bounds."""
+        """Verify environment reset yields valid 5-element state tuple within bounds."""
         state = self.env.reset(seed=42)
         self.assertIsInstance(state, tuple)
-        self.assertEqual(len(state), 4)
+        self.assertEqual(len(state), 5)
 
-        dr_bin, dc_bin, hazard, risk_bin = state
-        self.assertIn(dr_bin, {-2, -1, 0, 1, 2})
-        self.assertIn(dc_bin, {-2, -1, 0, 1, 2})
+        heading_bin, dist_bin, hazard, risk_bin, battery_bin = state
+        self.assertIn(heading_bin, range(8))
+        self.assertIn(dist_bin, range(5))
         self.assertIn(hazard, {0, 1, 2})
         self.assertIn(risk_bin, {0, 1, 2, 3})
+        self.assertIn(battery_bin, {0, 1, 2})
 
     def test_env_step_transition_and_reward(self):
-        """Verify stepping produces valid transition tuple."""
+        """Verify stepping produces valid transition tuple and telemetry info."""
         state = self.env.reset(seed=101)
         next_state, reward, done, info = self.env.step(action=0, use_adaptive_reward=True)
 
         self.assertIsInstance(next_state, tuple)
-        self.assertEqual(len(next_state), 4)
+        self.assertEqual(len(next_state), 5)
         self.assertIsInstance(reward, float)
         self.assertIsInstance(done, bool)
         self.assertIn("status", info)
         self.assertIn("r_env", info)
+        self.assertIn("battery_soc", info)
+        self.assertIn("energy_wh", info)
+        self.assertIn("outcome", info)
+
 
     def test_q_agent_selection_and_update(self):
         """Verify QAgent Q-table initialization, Bellman update, and greedy choice."""

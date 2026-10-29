@@ -375,6 +375,124 @@ def adaptive_lambda(
 
 
 # ──────────────────────────────────────────────────────────────────────────────
+# 3b. Energy Dynamics & Battery Physics
+# ──────────────────────────────────────────────────────────────────────────────
+
+NOMINAL_HOVER_POWER_W: float = 180.0    # Baseline hover electrical power at standard rho0 [W]
+AVIONICS_BASE_POWER_W: float = 15.0     # Flight computer, GNSS, telemetry base load [W]
+DRONE_MASS_KG: float = 1.5              # Total flight mass of quadrotor [kg]
+GRAVITY_MPS2: float = 9.80665           # Gravitational acceleration constant [m/s^2]
+BATTERY_CAPACITY_WH: float = 75.0       # 4S 5000 mAh LiPo nominal pack capacity [W * h]
+AERODYNAMIC_DRAG_COEFF: float = 0.08    # Lumped parasitic aerodynamic drag coefficient [N / (m/s)^2]
+
+
+def battery_power_consumption(
+    rho: float,
+    airspeed_mps: float,
+    vertical_speed_mps: float = 0.0,
+    is_hover: bool = False,
+    rho0: float = RHO_0_STANDARD,
+) -> float:
+    """
+    Computes total electrical power draw from the battery considering air density,
+    aerodynamic parasitic drag, and vertical climb power.
+
+    Formulas:
+        k_thrust = rho0 / rho                                            [-]
+        P_hover = k_thrust * P_hover0                                    [W]
+        P_drag = c_drag * airspeed^3                                     [W]
+        P_climb = max(0.0, m * g * v_z)                                  [W]
+        P_total = P_avionics + P_hover + P_drag + P_climb               [W]
+
+    Args:
+        rho: Ambient moist air density [kg / m^3].
+        airspeed_mps: Relative airspeed through the air mass [m/s].
+        vertical_speed_mps: Vertical ascent/descent rate [m/s] (positive = climb).
+        is_hover: Whether the drone is maintaining position without translational airspeed.
+        rho0: Reference standard air density [kg / m^3].
+
+    Returns:
+        Total electrical power consumption P_total in Watts [W].
+    """
+    k_th = thrust_compensation(rho, rho0)
+    p_hover = k_th * NOMINAL_HOVER_POWER_W
+
+    if is_hover:
+        p_drag = 0.0
+    else:
+        p_drag = AERODYNAMIC_DRAG_COEFF * (max(0.0, airspeed_mps) ** 3)
+
+    p_climb = max(0.0, DRONE_MASS_KG * GRAVITY_MPS2 * vertical_speed_mps)
+
+    p_total = AVIONICS_BASE_POWER_W + p_hover + p_drag + p_climb
+    return float(p_total)
+
+
+def compute_soc_drain(
+    power_watts: float,
+    duration_seconds: float,
+    battery_capacity_wh: float = BATTERY_CAPACITY_WH
+) -> float:
+    """
+    Computes battery State of Charge (SoC) drain percentage over a time delta.
+
+    Formula:
+        energy_used_wh = power_watts * (duration_seconds / 3600.0)       [W * h]
+        soc_drain_pct = (energy_used_wh / battery_capacity_wh) * 100.0   [%]
+
+    Args:
+        power_watts: Total electrical power draw [W].
+        duration_seconds: Elapsed duration in seconds [s].
+        battery_capacity_wh: Total battery pack energy capacity [W * h].
+
+    Returns:
+        State of charge percentage drain in [0.0, 100.0] [%].
+    """
+    energy_wh = power_watts * (duration_seconds / 3600.0)
+    drain_pct = (energy_wh / max(1.0, battery_capacity_wh)) * 100.0
+    return float(max(0.0, drain_pct))
+
+
+def compute_3d_kinematic_drift(
+    commanded_velocity_mps: Tuple[float, float, float],
+    wind_speed_mps: float,
+    wind_dir_rad: float,
+    drift_coupling_factor: float = 0.35,
+) -> Tuple[float, float, float]:
+    """
+    Computes effective 3D ground velocity accounting for wind vector drift coupling.
+
+    Formulas:
+        W_x = -wind_speed * sin(wind_dir)                                [m/s]
+        W_y = -wind_speed * cos(wind_dir)                                [m/s]
+        v_ground_x = v_cmd_x + gamma_drift * W_x                         [m/s]
+        v_ground_y = v_cmd_y + gamma_drift * W_y                         [m/s]
+        v_ground_z = v_cmd_z                                             [m/s]
+
+    Args:
+        commanded_velocity_mps: Commanded velocity tuple (vx, vy, vz) [m/s].
+        wind_speed_mps: Sustained wind speed [m/s].
+        wind_dir_rad: Wind vector origin azimuth theta_w [rad].
+        drift_coupling_factor: Aero coupling scalar gamma in [0.0, 1.0] [-].
+
+    Returns:
+        Effective ground velocity tuple (vx_g, vy_g, vz_g) [m/s].
+    """
+    vx_cmd, vy_cmd, vz_cmd = commanded_velocity_mps
+    # Wind vector blowing direction is opposite of origin angle theta_w
+    # By convention: 0 = North (from North -> blows South: -y), pi/2 = East (from East -> blows West: -x)
+    w_x = -wind_speed_mps * math.sin(wind_dir_rad)
+    w_y = -wind_speed_mps * math.cos(wind_dir_rad)
+
+    vx_ground = vx_cmd + (drift_coupling_factor * w_x)
+    vy_ground = vy_cmd + (drift_coupling_factor * w_y)
+    vz_ground = vz_cmd
+
+    return float(vx_ground), float(vy_ground), float(vz_ground)
+
+
+
+# ──────────────────────────────────────────────────────────────────────────────
 # 4. Reference Live Weather Acquisition (Open-Meteo API)
 # ──────────────────────────────────────────────────────────────────────────────
 

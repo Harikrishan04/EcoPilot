@@ -55,6 +55,64 @@ class TestSafetyEnvelope(unittest.TestCase):
         self.assertEqual(intervention.flight_mode, FlightMode.POLICY_DRIVEN)
         self.assertEqual(len(intervention.trigger_reasons), 0)
 
+    def test_battery_depletion_triggers_override(self):
+        """Low battery reserve forces RTH; critical battery forces Emergency Landing."""
+        # Low battery (18% <= 20%)
+        intervention_low = self.envelope.evaluate(
+            policy_action=0,
+            current_pos=self.current_pos,
+            home_pos=self.home_pos,
+            r_env=0.20,
+            dynamic_pressure_pa=30.0,
+            terrain_grid=self.terrain,
+            battery_soc_pct=18.0,
+        )
+        self.assertTrue(intervention_low.is_overridden)
+        self.assertEqual(intervention_low.flight_mode, FlightMode.RETURN_TO_BASE)
+        self.assertTrue(any("LOW_BATTERY" in r for r in intervention_low.trigger_reasons))
+
+        # Critical battery (6% <= 8%)
+        intervention_crit = self.envelope.evaluate(
+            policy_action=0,
+            current_pos=self.current_pos,
+            home_pos=self.home_pos,
+            r_env=0.20,
+            dynamic_pressure_pa=30.0,
+            terrain_grid=self.terrain,
+            battery_soc_pct=6.0,
+            landing_zones=[(3, 3)],
+        )
+        self.assertTrue(intervention_crit.is_overridden)
+        self.assertEqual(intervention_crit.flight_mode, FlightMode.EMERGENCY_LAND)
+        self.assertTrue(any("CRITICAL_BATTERY" in r for r in intervention_crit.trigger_reasons))
+
+    def test_hover_timeout_transitions_to_rth(self):
+        """Hover cannot continue indefinitely; after max hover steps it must transition to RTH."""
+        # Severe storm with 1 step in hover -> HOVER_HOLD
+        intervention_hover = self.envelope.evaluate(
+            policy_action=0,
+            current_pos=self.current_pos,
+            home_pos=self.home_pos,
+            r_env=0.96,
+            dynamic_pressure_pa=140.0,
+            terrain_grid=self.terrain,
+            consecutive_hover_steps=1,
+        )
+        self.assertEqual(intervention_hover.flight_mode, FlightMode.HOVER_HOLD)
+
+        # Severe storm with 4 steps already in hover -> Forced RETURN_TO_BASE
+        intervention_rth = self.envelope.evaluate(
+            policy_action=0,
+            current_pos=self.current_pos,
+            home_pos=self.home_pos,
+            r_env=0.96,
+            dynamic_pressure_pa=140.0,
+            terrain_grid=self.terrain,
+            consecutive_hover_steps=4,
+        )
+        self.assertEqual(intervention_rth.flight_mode, FlightMode.RETURN_TO_BASE)
+        self.assertNotEqual(intervention_rth.executed_action, ACTION_HOVER)
+
     def test_critical_r_env_triggers_override(self):
         """When R_env exceeds R_critical (0.85), override MUST trigger."""
         policy_action = 0
