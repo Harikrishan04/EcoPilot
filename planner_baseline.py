@@ -138,3 +138,4 @@ class RuleBasedPlanner:
                     heapq.heappush(open_set, (new_g + h, new_g, (nr, nc), path + [(nr, nc)]))
 
         return None
+

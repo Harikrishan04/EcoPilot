@@ -3,13 +3,14 @@
 **Authors / Maintainers**: EcoPilot Project Team  
 **Affiliation**: IIIT Manipur (Mantripukhri Campus Simulation Study)  
 **Target Terrain**: Mantripukhri, Imphal West, Manipur, India (`[24.8423°N, 93.9302°E]` to `[24.8559°N, 93.9442°E]`)  
-**Repository**: [github.com/Harikrishan04/EcoPilot](https://github.com/Harikrishan04/EcoPilot)
+**Repository**: [github.com/Harikrishan04/EcoPilot](https://github.com/Harikrishan04/EcoPilot)  
+**Configuration**: Versioned in [`configs/baseline_evaluation.json`](configs/baseline_evaluation.json) (v1.0.0)
 
 ---
 
 ## Abstract
 
-Autonomous micro-aerial vehicle (MAV) navigation in valley corridors presents compound challenges: complex topographic clearance, volatile micrometeorology, and constrained battery reserves. Standard reinforcement learning approaches treat wind and atmospheric turbulence either as unobserved transition noise or static drag coefficients. In this work, we present **EcoPilot**, a lightweight, CPU-efficient tabular Q-learning framework that conditions its policy and reward structure on a composite, physics-derived **Environmental Risk Score ($R_{\text{env}}$)** computed in real time from ambient barometric pressure, relative humidity, temperature, and wind vector fields. Furthermore, to overcome the notorious fragility of learned policies under extreme out-of-distribution turbulence, EcoPilot decouples flight integrity into an independent, deterministic **Hard Safety Envelope** that guarantees zero false negatives during critical gust excursions ($q > q_{\text{max}}$), barometric drops, or battery depletion. Evaluated over real NASA SRTM 30-metre digital elevation models of the Imphal Valley on held-out seeds, the adaptive policy coupled with the safety envelope achieves **93.0% mission success in calm weather** ($\pm 5.0\%$, 95% CI) and **93.0% in moderate turbulence** ($\pm 5.0\%$, 95% CI), with **100.0% safe Return-to-Home aborts and 0.0% collisions** under severe squalls.
+Autonomous micro-aerial vehicle (MAV) navigation in valley corridors presents compound challenges: complex topographic clearance, volatile micrometeorology, and constrained battery reserves. Standard reinforcement learning approaches treat wind and atmospheric turbulence either as unobserved transition noise or static drag coefficients. In this work, we present **EcoPilot**, a lightweight, CPU-efficient tabular Q-learning framework that conditions its policy and reward structure on a composite, physics-derived **Environmental Risk Score ($R_{\text{env}}$)** computed in real time from ambient barometric pressure, relative humidity, temperature, and wind vector fields. Furthermore, to overcome the fragility of learned policies under extreme out-of-distribution turbulence, EcoPilot decouples flight integrity into an independent, deterministic **Hard Safety Envelope** that guarantees zero false negatives during critical gust excursions ($q > q_{\text{max}}$), barometric drops, or battery depletion. Evaluated over real NASA SRTM 30-metre digital elevation models of the Imphal Valley across 900 held-out evaluation episodes, the adaptive policy achieves **93.0% mission success in calm weather** ($\pm 5.0\%$, 95% CI) and **88.0% in moderate turbulence** ($\pm 6.4\%$, 95% CI), with **99.0% safe Return-to-Home aborts and 0.0% collisions** under severe squalls.
 
 ---
 
@@ -126,26 +127,27 @@ The safety envelope ([`safety.py`](file:///home/hari/Documents/projects/EcoPilot
 
 ## 5. Empirical Evaluation Results
 
-Evaluated across **100 held-out evaluation seeds** (seeds 5001–5100, strictly disjoint from training) per meteorological bucket:
+Evaluated across **100 held-out evaluation seeds** (seeds 5001–5100, strictly disjoint from training) per meteorological bucket from [`configs/baseline_evaluation.json`](configs/baseline_evaluation.json). Raw per-episode trajectories are exported to [`data/evaluation_results.csv`](data/evaluation_results.csv) (900 rows) and summarized in [`data/evaluation_summary.csv`](data/evaluation_summary.csv):
 
-| Condition Bucket | Evaluated Model | Success Rate (%) | 95% Confidence Interval | Safe RTH (%) | Timeout (%) | Crash (%) | Mean Energy (W·h) | Mean Overrides |
-|---|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Calm** ($R_{\text{env}} \approx 0.19$) | **Adaptive Q-Agent** | **93.0%** | $\pm 5.0\%$ | 0.0% | 7.0% | **0.0%** | 3.11 W·h | 4.88 |
-| | Static Baseline | 91.0% | $\pm 5.6\%$ | 0.0% | 9.0% | **0.0%** | 4.16 W·h | 5.50 |
-| | Rule-Based A* Planner | **100.0%** | $\pm 0.0\%$ | 0.0% | 0.0% | **0.0%** | 1.82 W·h | 0.00 |
-| **Moderate** ($R_{\text{env}} \approx 0.47$) | **Adaptive Q-Agent** | **93.0%** | $\pm 5.0\%$ | 0.0% | 7.0% | **0.0%** | 4.45 W·h | 8.95 |
-| | Static Baseline | 87.0% | $\pm 6.6\%$ | 0.0% | 13.0% | **0.0%** | 5.58 W·h | 13.07 |
-| | Rule-Based A* Planner | **94.0%** | $\pm 4.7\%$ | 0.0% | 6.0% | **0.0%** | 4.34 W·h | 9.89 |
-| **Severe** ($R_{\text{env}} \approx 0.90$) | **Adaptive Q-Agent** | 0.0% | $\pm 0.0\%$ | **100.0%** | 0.0% | **0.0%** | 0.71 W·h | 3.01 |
-| | Static Baseline | 0.0% | $\pm 0.0\%$ | **100.0%** | 0.0% | **0.0%** | 0.70 W·h | 2.97 |
-| | Rule-Based A* Planner | 0.0% | $\pm 0.0\%$ | **99.0%** | 1.0% | **0.0%** | 1.12 W·h | 3.63 |
+| Condition Bucket | Evaluated Model | Success Rate (%) | 95% Confidence Interval | Safe RTH (%) | Timeout (%) | Crash (%) | Mean Path (m) | Mean Energy (W·h) | Mean Overrides |
+|---|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Calm** ($R_{\text{env}} \approx 0.19$) | **Adaptive Q-Agent** | **93.0%** | $\pm 5.0\%$ | 0.0% | 7.0% | **0.0%** | 791.6 m | 3.07 W·h | 4.74 |
+| | Static Baseline | 92.0% | $\pm 5.3\%$ | 0.0% | 8.0% | **0.0%** | 1019.0 m | 4.01 W·h | 5.39 |
+| | Rule-Based A* Planner | **100.0%** | $\pm 0.0\%$ | 0.0% | 0.0% | **0.0%** | 438.0 m | 1.81 W·h | 0.00 |
+| **Moderate** ($R_{\text{env}} \approx 0.47$) | **Adaptive Q-Agent** | **88.0%** | $\pm 6.4\%$ | 0.0% | 12.0% | **0.0%** | 1006.8 m | 5.41 W·h | 12.92 |
+| | Static Baseline | 87.0% | $\pm 6.6\%$ | 0.0% | 13.0% | **0.0%** | 1018.1 m | 5.44 W·h | 12.43 |
+| | Rule-Based A* Planner | **93.0%** | $\pm 5.0\%$ | 0.0% | 7.0% | **0.0%** | 732.7 m | 4.36 W·h | 10.72 |
+| **Severe** ($R_{\text{env}} \approx 0.90$) | **Adaptive Q-Agent** | 0.0% | $\pm 0.0\%$ | **99.0%** | 1.0% | **0.0%** | 76.9 m | 1.01 W·h | 3.75 |
+| | Static Baseline | 1.0% | $\pm 2.0\%$ | **99.0%** | 0.0% | **0.0%** | 64.2 m | 0.85 W·h | 3.27 |
+| | Rule-Based A* Planner | 0.0% | $\pm 0.0\%$ | **100.0%** | 0.0% | **0.0%** | 61.0 m | 0.84 W·h | 3.15 |
 
 ### Benchmark Analysis & Target Compliance
 - **Calm Target ($\ge 80\%$)**: Adaptive Agent achieves **93.0%**; A* Planner achieves **100.0%** (PASSED).
-- **Moderate Target ($\ge 65\%$)**: Adaptive Agent achieves **93.0%**; Static Baseline achieves 87.0% (PASSED).
+- **Moderate Target ($\ge 65\%$)**: Adaptive Agent achieves **88.0%**; A* Planner achieves **93.0%** (PASSED).
 - **Collision Rate Target ($0\%$)**: Maintained **0.0%** across all 900 evaluation trials (PASSED).
-- **Severe Weather Explicit Outcomes**: **100.0% Safe RTH** abort rate; zero indefinite hover loops (PASSED).
-- **Energy Advantage**: Adaptive Agent consumed **14.8% less energy** in Calm and **20.3% less energy** in Moderate than the Static Baseline due to wind-aware route planning.
+- **Timeout Rate Target**: Calm $\le 10\%$ (**7.0%** achieved); Moderate $\le 20\%$ (**12.0%** achieved) (PASSED).
+- **Severe Weather Explicit Outcomes**: **99.0% Safe RTH** abort rate; zero indefinite hover loops (PASSED).
+- **Energy & Path Advantage**: In Calm weather, Adaptive Agent required **22.3% shorter flight paths** (791.6 m vs 1019.0 m) and consumed **23.4% less battery energy** (3.07 Wh vs 4.01 Wh) compared to Static Baseline due to wind-aware routing.
 
 ---
 

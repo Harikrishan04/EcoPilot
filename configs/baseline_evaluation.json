@@ -1,0 +1,65 @@
+{
+  "version": "1.0.0",
+  "description": "EcoPilot Versioned Baseline Evaluation Configuration",
+  "evaluation": {
+    "episodes_per_bucket": 100,
+    "seed_start": 5001,
+    "max_steps": 120,
+    "safety_enabled": true,
+    "r_critical": 0.85,
+    "q_max_pa": 120.0,
+    "terrain_safety_margin": 0.05,
+    "max_hover_steps": 4,
+    "low_battery_soc": 20.0,
+    "critical_battery_soc": 8.0
+  },
+  "condition_buckets": {
+    "Calm": {
+      "wind_speed_range": [1.2, 3.2],
+      "gust_variance_range": [0.1, 0.4],
+      "temp_k_range": [293.15, 296.15],
+      "pressure_pa_range": [92400.0, 92800.0],
+      "rh_range": [0.40, 0.55],
+      "dp_dt_range": [-0.2, 0.2]
+    },
+    "Moderate": {
+      "wind_speed_range": [5.5, 8.5],
+      "gust_variance_range": [1.4, 2.6],
+      "temp_k_range": [298.15, 303.15],
+      "pressure_pa_range": [92000.0, 92400.0],
+      "rh_range": [0.60, 0.75],
+      "dp_dt_range": [-1.0, -0.4]
+    },
+    "Severe": {
+      "wind_speed_range": [12.0, 15.5],
+      "gust_variance_range": [3.8, 5.0],
+      "temp_k_range": [304.15, 309.15],
+      "pressure_pa_range": [90800.0, 91500.0],
+      "rh_range": [0.85, 0.98],
+      "dp_dt_range": [-3.0, -2.0]
+    }
+  },
+  "models": [
+    {
+      "name": "AdaptiveAgent",
+      "type": "rl_adaptive",
+      "policy_path": "data/q_table_adaptive.json"
+    },
+    {
+      "name": "StaticBaseline",
+      "type": "rl_static",
+      "policy_path": "data/q_table_baseline.json"
+    },
+    {
+      "name": "RuleBasedPlanner",
+      "type": "heuristic_astar",
+      "policy_path": null
+    }
+  ],
+  "outputs": {
+    "episodes_csv": "data/evaluation_results.csv",
+    "summary_csv": "data/evaluation_summary.csv",
+    "charts_png": "evaluation_charts.png"
+  }
+}
+

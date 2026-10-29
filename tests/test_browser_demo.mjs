@@ -2,21 +2,27 @@
  * tests/test_browser_demo.mjs — EcoPilot Automated Browser Testing Script
  *
  * Launches Google Chrome in headless mode with remote debugging (CDP),
- * loads ecopilot_demo.html, and executes 3 automated testing scenarios:
+ * loads ecopilot_demo.html, and executes 4 automated testing scenarios:
  *   1. Calm Conditions: Verifies physics telemetry, R_env < 0.25, and nominal envelope.
  *   2. Severe Weather: Injects extreme wind and pressure drop, verifies R_env > 0.85 and hard safety override triggers.
  *   3. Agent Switching & Mission Execution: Steps through greedy policy navigation, logs safety interventions.
+ *   4. Policy Reset & Telemetry Verification.
  *
- * Saves full-resolution screenshots of each browser testing state.
+ * Complies with IMPROVEMENT_PLAN.md:
+ *   - Fails with non-zero exit code on incorrect telemetry or missing interventions.
+ *   - Captures and prints Chrome stderr and startup/connection errors in failure output.
+ *   - Uses isolated user-data-dir to guarantee clean headless execution without profile conflicts.
  */
 
 import { spawn } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 
 const PORT = 9222;
 const HTML_PATH = "file://" + path.resolve("ecopilot_demo.html");
 const SCREENSHOT_DIR = path.resolve("tests/screenshots");
+const USER_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "ecopilot-chrome-"));
 
 fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });
 
@@ -24,9 +30,12 @@ async function sleep(ms) {
   return new Promise((res) => setTimeout(res, ms));
 }
 
-// Launch Chrome in headless mode with remote debugging and stderr capture
 console.log("=== Launching Google Chrome (Headless CDP) ===");
 let chromeStderr = "";
+let chromeStdout = "";
+let chromeExitCode = null;
+let chromeSpawnError = null;
+
 const chrome = spawn(
   "google-chrome",
   [
@@ -34,27 +43,47 @@ const chrome = spawn(
     "--headless=new",
     "--disable-gpu",
     "--no-sandbox",
+    "--disable-dev-shm-usage",
+    "--disable-software-rasterizer",
+    `--user-data-dir=${USER_DATA_DIR}`,
     "--window-size=1440,950",
     HTML_PATH,
   ]
 );
+
+chrome.stdout?.on("data", (data) => {
+  chromeStdout += data.toString();
+});
 
 chrome.stderr?.on("data", (data) => {
   chromeStderr += data.toString();
 });
 
 chrome.on("error", (err) => {
-  console.error("Chrome Process Spawn Error:", err);
+  chromeSpawnError = err;
+  console.error("[Chrome Process Error]", err);
 });
 
-// Cleanup on exit
-process.on("exit", () => {
+chrome.on("exit", (code, signal) => {
+  chromeExitCode = code !== null ? code : signal;
+});
+
+function cleanup() {
   try {
-    chrome.kill();
+    chrome.kill("SIGKILL");
   } catch (_) {}
+  try {
+    fs.rmSync(USER_DATA_DIR, { recursive: true, force: true });
+  } catch (_) {}
+}
+
+process.on("exit", cleanup);
+process.on("SIGINT", () => {
+  cleanup();
+  process.exit(1);
 });
 
-// Helper to send CDP command
+// Helper to send CDP commands
 function createCDPClient(wsUrl) {
   const ws = new WebSocket(wsUrl);
   let id = 1;
@@ -105,21 +134,37 @@ function createCDPClient(wsUrl) {
 }
 
 async function runBrowserTests() {
-  // Wait for Chrome CDP port to become active
   let targets = null;
-  for (let i = 0; i < 20; i++) {
-    await sleep(500);
+  let lastFetchError = null;
+
+  for (let i = 0; i < 25; i++) {
+    await sleep(400);
+    if (chromeExitCode !== null) {
+      break; // Chrome died early
+    }
     try {
       const resp = await fetch(`http://127.0.0.1:${PORT}/json`);
       if (resp.ok) {
         targets = await resp.json();
         break;
       }
-    } catch (_) {}
+    } catch (err) {
+      lastFetchError = err;
+    }
   }
 
   if (!targets || targets.length === 0) {
-    throw new Error("Failed to connect to Chrome DevTools Protocol");
+    const errorDetails = [
+      "Failed to connect to Chrome DevTools Protocol at http://127.0.0.1:" + PORT,
+      `Chrome Process Exit Code: ${chromeExitCode}`,
+      `Chrome Spawn Error: ${chromeSpawnError ? chromeSpawnError.message : "None"}`,
+      `Last Network Fetch Error: ${lastFetchError ? lastFetchError.message : "None"}`,
+      "--- Captured Chrome Stderr Output ---",
+      chromeStderr.trim() || "(No stderr captured)",
+      "--- Captured Chrome Stdout Output ---",
+      chromeStdout.trim() || "(No stdout captured)",
+    ].join("\n");
+    throw new Error(errorDetails);
   }
 
   const pageTarget = targets.find((t) => t.type === "page") || targets[0];
@@ -181,7 +226,6 @@ async function runBrowserTests() {
   await client.captureScreenshot("2_severe_override_triggered.png");
 
   console.log("\n--- TEST 3: Stepping Policy Under Extreme Risk ---");
-  // Set isFlying = true and execute 5 policy steps under severe conditions to verify safety interventions
   const flightResult = await client.evaluate(`
     (() => {
       isFlying = true;
@@ -232,12 +276,14 @@ async function runBrowserTests() {
 
   console.log("\n=== All Browser Tests Completed Successfully ===");
   client.close();
-  chrome.kill();
+  cleanup();
   process.exit(0);
 }
 
 runBrowserTests().catch((err) => {
-  console.error("Browser test failed:", err);
-  chrome.kill();
+  console.error("\n================ BROWSER INTEGRATION TEST FAILURE ================");
+  console.error(err.message || err);
+  console.error("==================================================================\n");
+  cleanup();
   process.exit(1);
 });
