@@ -39,6 +39,9 @@ class FlightMode(enum.Enum):
 
 # Action indices matching DroneEnv (0..7) + Special Hover action (8)
 ACTION_HOVER = 8
+ACTION_CLIMB = 9
+ACTION_DESCEND = 10
+ACTION_RTH = 11
 ACTION_DELTAS = [
     (-1, 0),   # 0: North
     (-1, 1),   # 1: North-East
@@ -79,6 +82,7 @@ class SafetyEnvelope:
         max_hover_steps: int = 4,            # Maximum allowable consecutive hover steps
         battery_reserve_pct: float = 20.0,   # Minimum battery reserve before forced RTH [%]
         battery_critical_pct: float = 8.0,   # Critical battery threshold before emergency landing [%]
+        **kwargs,
     ):
         """
         Initializes the enhanced safety envelope.
@@ -91,6 +95,8 @@ class SafetyEnvelope:
             battery_reserve_pct: Battery State of Charge triggering Return-to-Home.
             battery_critical_pct: Battery State of Charge forcing Emergency Landing.
         """
+        if "low_battery_soc" in kwargs:
+            battery_reserve_pct = kwargs.pop("low_battery_soc")
         self.r_critical = r_critical
         self.q_max_pa = q_max_pa
         self.terrain_safety_margin = terrain_safety_margin
@@ -222,6 +228,8 @@ class SafetyEnvelope:
         cur_r, cur_c = current_pos
         # Find nearest landing zone
         best_lz = min(landing_zones, key=lambda lz: math.hypot(lz[0] - cur_r, lz[1] - cur_c))
+        if math.hypot(best_lz[0] - cur_r, best_lz[1] - cur_c) <= 1.0:
+            return ACTION_DESCEND
         return self._calculate_rtb_action(current_pos, best_lz, terrain_grid, cruise_altitude)
 
     def _calculate_rtb_action(
@@ -238,6 +246,9 @@ class SafetyEnvelope:
         rows, cols = terrain_grid.shape
         cur_r, cur_c = current_pos
         home_r, home_c = home_pos
+
+        if math.hypot(home_r - cur_r, home_c - cur_c) <= 0.8:
+            return ACTION_HOVER
 
         best_action = ACTION_HOVER
         best_cost = float("inf")

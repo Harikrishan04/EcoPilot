@@ -156,6 +156,7 @@ class DroneEnv:
         self.max_altitude = 0.85          # Flight ceiling
         self.min_altitude = 0.15          # Minimum flight floor
         self.low_battery_soc = 20.0       # Low battery threshold percentage [%]
+        self.rng = np.random.default_rng(42)
 
         # Precompute safe valley cells (elevation well below cruise altitude)
         self.valley_mask = self.terrain < (self.cruise_altitude - self.min_clearance_margin)
@@ -266,7 +267,8 @@ class DroneEnv:
         Returns:
             Discretized observation state tuple.
         """
-        rng = np.random.default_rng(seed)
+        self.rng = np.random.default_rng(seed)
+        rng = self.rng
         self.step_count = 0
         self.hover_consecutive_steps = 0
         self.battery_soc_pct = 100.0
@@ -414,7 +416,7 @@ class DroneEnv:
         prev_dist = math.hypot(self.goal_r - self.drone_r, self.goal_c - self.drone_c)
 
         # Dynamic atmospheric micro-perturbations during flight
-        self.wind_speed = max(0.0, self.wind_speed + float(np.random.normal(0.0, 0.15)))
+        self.wind_speed = max(0.0, self.wind_speed + float(self.rng.normal(0.0, 0.15)))
         self.r_env = calculate_R_env(
             wind_speed=self.wind_speed,
             gust_variance=self.gust_variance,
@@ -545,22 +547,22 @@ class DroneEnv:
         dist_home = math.hypot(self.home_r - self.drone_r, self.home_c - self.drone_c)
         is_emergency_condition = (self.r_env > 0.80 or self.battery_soc_pct < self.low_battery_soc)
 
+        # Check controlled emergency landing in nearest flat landing zone (prioritized if battery critical)
+        if (self.battery_soc_pct <= 10.0 or action == 10) and self.step_count > 0:
+            nearest_lz_dist = min(math.hypot(lz[0] - self.drone_r, lz[1] - self.drone_c) for lz in self.landing_zones)
+            if nearest_lz_dist <= 1.2:
+                self.outcome = MissionOutcome.CONTROLLED_LANDING
+                info["outcome"] = self.outcome.value
+                info["status"] = "controlled_landing"
+                land_reward = 30.0
+                return self.get_state(), float(land_reward), True, info
+
         if dist_home <= 1.2 and (action == 11 or is_emergency_condition) and self.step_count > 2:
             self.outcome = MissionOutcome.SAFE_RTH
             info["outcome"] = self.outcome.value
             info["status"] = "safe_rth"
             rth_reward = 35.0  # Safe recovery reward
             return self.get_state(), float(rth_reward), True, info
-
-        # Check controlled emergency landing in nearest flat landing zone
-        if self.battery_soc_pct <= 10.0 and self.step_count > 2:
-            nearest_lz_dist = min(math.hypot(lz[0] - self.drone_r, lz[1] - self.drone_c) for lz in self.landing_zones)
-            if nearest_lz_dist <= 1.2:
-                self.outcome = MissionOutcome.CONTROLLED_LANDING
-                info["outcome"] = self.outcome.value
-                info["status"] = "controlled_landing"
-                land_reward = 25.0
-                return self.get_state(), float(land_reward), True, info
 
         # ── 6. Timeout Check ──────────────────────────────────────────────────
         if self.step_count >= self.max_steps:

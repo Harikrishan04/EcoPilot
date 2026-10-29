@@ -73,9 +73,11 @@ class QAgent:
             return int(np.random.randint(0, self.num_actions))
 
         q_vals = self.get_q_values(state)
-        # Random tie-breaking among maximum Q-values
+        # Random tie-breaking during training, deterministic first-action during evaluation
         max_val = np.max(q_vals)
         best_actions = np.flatnonzero(q_vals == max_val)
+        if not training:
+            return int(best_actions[0])
         return int(np.random.choice(best_actions))
 
     def update(

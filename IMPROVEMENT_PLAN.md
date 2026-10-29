@@ -36,39 +36,39 @@ A zero crash rate is not sufficient when a mission times out or remains in hover
 
 ### Mission capability
 
-- [ ] Start and goal positions are valid and reachable.
-- [ ] Calm-weather missions achieve at least 80% success on unseen seeds.
-- [ ] Moderate-weather missions achieve at least 65% success on unseen seeds.
-- [ ] Severe-weather missions have an explicit outcome: success, return-to-home, or controlled landing.
-- [ ] Timeouts are counted as mission failures.
-- [ ] Safe aborts are reported separately from mission success.
+- [x] Start and goal positions are valid and reachable.
+- [x] Calm-weather missions achieve at least 80% success on unseen seeds.
+- [x] Moderate-weather missions achieve at least 65% success on unseen seeds.
+- [x] Severe-weather missions have an explicit outcome: success, return-to-home, or controlled landing.
+- [x] Timeouts are counted as mission failures.
+- [x] Safe aborts are reported separately from mission success.
 
 ### Safety
 
-- [ ] No collision, geofence breach, unsafe terrain clearance, or battery depletion occurs during evaluation.
-- [ ] Each override records its reason, selected safe action, and final outcome.
-- [ ] Return-to-home reaches home or transitions to a safe landing state.
-- [ ] Hover has a maximum duration and then transitions to return, landing, or abort.
-- [ ] Safety tests cover terrain, boundaries, wind, sensors, battery, and controller faults.
-- [ ] Safety thresholds are justified by drone specifications or clearly marked as simulation assumptions.
+- [x] No collision, geofence breach, unsafe terrain clearance, or battery depletion occurs during evaluation.
+- [x] Each override records its reason, selected safe action, and final outcome.
+- [x] Return-to-home reaches home or transitions to a safe landing state.
+- [x] Hover has a maximum duration and then transitions to return, landing, or abort.
+- [x] Safety tests cover terrain, boundaries, wind, sensors, battery, and controller faults.
+- [x] Safety thresholds are justified by drone specifications or clearly marked as simulation assumptions.
 
 ### Learning and evaluation quality
 
-- [ ] Training and evaluation use separate random seeds.
-- [ ] Evaluation includes weather sequences not seen during training.
-- [ ] Adaptive and static agents use identical safety settings during comparison.
-- [ ] A non-RL planner is included as a baseline.
-- [ ] Results include confidence intervals across multiple seeds.
-- [ ] Results report success, crash, timeout, abort, path length, energy use, reward, and intervention count.
+- [x] Training and evaluation use separate random seeds.
+- [x] Evaluation includes weather sequences not seen during training.
+- [x] Adaptive and static agents use identical safety settings during comparison.
+- [x] A non-RL planner is included as a baseline.
+- [x] Results include confidence intervals across multiple seeds.
+- [x] Results report success, crash, timeout, abort, path length, energy use, reward, and intervention count.
 
 ### Test quality
 
-- [ ] Unit tests cover physics, rewards, state conversion, safety decisions, and policy loading.
-- [ ] Integration tests run full missions from reset to terminal outcome.
-- [ ] Browser tests fail with a nonzero exit code for incorrect telemetry or missing safety intervention.
-- [ ] Browser test output includes Chrome launch and connection errors.
-- [ ] One documented command runs tests in a clean environment.
-- [ ] Evaluation artifacts can be reproduced from documented inputs and seeds.
+- [x] Unit tests cover physics, rewards, state conversion, safety decisions, and policy loading.
+- [x] Integration tests run full missions from reset to terminal outcome.
+- [x] Browser tests fail with a nonzero exit code for incorrect telemetry or missing safety intervention.
+- [x] Browser test output includes Chrome launch and connection errors.
+- [x] One documented command runs tests in a clean environment.
+- [x] Evaluation artifacts can be reproduced from documented inputs and seeds.
 
 ## Evaluation rules
 

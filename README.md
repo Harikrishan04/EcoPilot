@@ -61,15 +61,15 @@ Evaluated across **100 held-out evaluation seeds** (seeds 5001–5100, strictly 
 
 | Condition Bucket | Evaluated Model | Success Rate (%) | 95% Confidence Interval | Safe RTH (%) | Timeout (%) | Crash (%) | Mean Path (m) | Mean Energy (W·h) |
 |---|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Calm** ($R_{\text{env}} \approx 0.19$) | **Adaptive Q-Agent** | **93.0%** | $\pm 5.0\%$ | 0.0% | 7.0% | **0.0%** | 791.6 m | 3.07 W·h |
-| | Static Baseline | 92.0% | $\pm 5.3\%$ | 0.0% | 8.0% | **0.0%** | 1019.0 m | 4.01 W·h |
+| **Calm** ($R_{\text{env}} \approx 0.19$) | **Adaptive Q-Agent** | **95.0%** | $\pm 4.3\%$ | 0.0% | 5.0% | **0.0%** | 641.4 m | 2.78 W·h |
+| | Static Baseline | 91.0% | $\pm 5.6\%$ | 0.0% | 9.0% | **0.0%** | 958.6 m | 4.09 W·h |
 | | Rule-Based A* Planner | **100.0%** | $\pm 0.0\%$ | 0.0% | 0.0% | **0.0%** | 438.0 m | 1.81 W·h |
-| **Moderate** ($R_{\text{env}} \approx 0.47$) | **Adaptive Q-Agent** | **88.0%** | $\pm 6.4\%$ | 0.0% | 12.0% | **0.0%** | 1006.8 m | 5.41 W·h |
-| | Static Baseline | 87.0% | $\pm 6.6\%$ | 0.0% | 13.0% | **0.0%** | 1018.1 m | 5.44 W·h |
-| | Rule-Based A* Planner | **93.0%** | $\pm 5.0\%$ | 0.0% | 7.0% | **0.0%** | 732.7 m | 4.36 W·h |
-| **Severe** ($R_{\text{env}} \approx 0.90$) | **Adaptive Q-Agent** | 0.0% | $\pm 0.0\%$ | **99.0%** | 1.0% | **0.0%** | 76.9 m | 1.01 W·h |
-| | Static Baseline | 1.0% | $\pm 2.0\%$ | **99.0%** | 0.0% | **0.0%** | 64.2 m | 0.85 W·h |
-| | Rule-Based A* Planner | 0.0% | $\pm 0.0\%$ | **100.0%** | 0.0% | **0.0%** | 61.0 m | 0.84 W·h |
+| **Moderate** ($R_{\text{env}} \approx 0.47$) | **Adaptive Q-Agent** | **90.0%** | $\pm 5.9\%$ | 0.0% | 10.0% | **0.0%** | 763.7 m | 4.68 W·h |
+| | Static Baseline | 85.0% | $\pm 7.0\%$ | 0.0% | 15.0% | **0.0%** | 903.8 m | 5.38 W·h |
+| | Rule-Based A* Planner | **90.0%** | $\pm 5.9\%$ | 0.0% | 10.0% | **0.0%** | 511.7 m | 4.08 W·h |
+| **Severe** ($R_{\text{env}} \approx 0.90$) | **Adaptive Q-Agent** | 0.0% | $\pm 0.0\%$ | **100.0%** | 0.0% | **0.0%** | 0.3 m | 0.39 W·h |
+| | Static Baseline | 0.0% | $\pm 0.0\%$ | **100.0%** | 0.0% | **0.0%** | 0.6 m | 0.39 W·h |
+| | Rule-Based A* Planner | 1.0% | $\pm 2.0\%$ | **99.0%** | 0.0% | **0.0%** | 6.4 m | 0.41 W·h |
 
 ![Evaluation Benchmark](evaluation_charts.png)
 
@@ -78,7 +78,7 @@ Evaluated across **100 held-out evaluation seeds** (seeds 5001–5100, strictly 
 ## Running Automated Tests
 
 ```bash
-# Run full unit and integration test suite (23 tests covering physics, RL, safety, and evaluation)
+# Run full unit and integration test suite (25 tests covering physics, RL, safety, and evaluation)
 python3 -m unittest discover tests/ -v
 
 # Run hardened headless Chrome browser automation test (strict assertions and stderr diagnostics)

@@ -14,6 +14,8 @@ import tempfile
 import unittest
 
 from evaluate import evaluate_all, load_evaluation_config
+from drone_env import DroneEnv, MissionOutcome
+from safety import SafetyEnvelope, FlightMode
 
 
 class TestEvaluationIntegration(unittest.TestCase):
@@ -101,6 +103,89 @@ class TestEvaluationIntegration(unittest.TestCase):
         self.assertTrue(os.path.isfile(self.charts_png), f"Missing {self.charts_png}")
         self.assertGreater(os.path.getsize(self.charts_png), 10000, "Generated chart is too small or empty")
 
+    def test_evaluation_byte_for_byte_reproducibility(self):
+        """
+        Verify that evaluation is strictly deterministic: running evaluation twice
+        on identical seeds produces byte-for-byte identical episode and summary CSV files.
+        """
+        dir1 = tempfile.mkdtemp(prefix="repro1_")
+        dir2 = tempfile.mkdtemp(prefix="repro2_")
+        try:
+            ep1 = os.path.join(dir1, "episodes.csv")
+            sum1 = os.path.join(dir1, "summary.csv")
+            ch1 = os.path.join(dir1, "chart.png")
+
+            ep2 = os.path.join(dir2, "episodes.csv")
+            sum2 = os.path.join(dir2, "summary.csv")
+            ch2 = os.path.join(dir2, "chart.png")
+
+            evaluate_all(
+                config_path="configs/baseline_evaluation.json",
+                override_episodes_per_bucket=2,
+                override_episodes_csv=ep1,
+                override_summary_csv=sum1,
+                override_charts_png=ch1,
+            )
+            evaluate_all(
+                config_path="configs/baseline_evaluation.json",
+                override_episodes_per_bucket=2,
+                override_episodes_csv=ep2,
+                override_summary_csv=sum2,
+                override_charts_png=ch2,
+            )
+
+            with open(ep1, "rb") as f1, open(ep2, "rb") as f2:
+                self.assertEqual(f1.read(), f2.read(), "Episode CSVs are not byte-for-byte identical across runs!")
+
+            with open(sum1, "rb") as f1, open(sum2, "rb") as f2:
+                self.assertEqual(f1.read(), f2.read(), "Summary CSVs are not byte-for-byte identical across runs!")
+        finally:
+            shutil.rmtree(dir1, ignore_errors=True)
+            shutil.rmtree(dir2, ignore_errors=True)
+
+    def test_controlled_landing_end_to_end(self):
+        """
+        Verify that when battery reaches critical threshold (< 8%), the safety envelope
+        overrides the policy with EMERGENCY_LAND and directs the drone to complete
+        a safe controlled descent at an approved flat landing site.
+        """
+        env = DroneEnv()
+        env.reset(seed=42)
+
+        # Place drone directly at an approved emergency landing zone
+        target_lz = env.landing_zones[0]
+        env.drone_r = float(target_lz[0])
+        env.drone_c = float(target_lz[1])
+        env.battery_soc_pct = 7.0  # Below 8.0% critical threshold
+        env.step_count = 1
+
+        envelope = SafetyEnvelope(battery_critical_pct=8.0)
+        policy_action = 0  # Policy attempts to move North
+
+        intervention = envelope.evaluate(
+            policy_action=policy_action,
+            current_pos=(int(round(env.drone_r)), int(round(env.drone_c))),
+            home_pos=(env.home_r, env.home_c),
+            r_env=env.r_env,
+            dynamic_pressure_pa=10.0,
+            terrain_grid=env.terrain,
+            cruise_altitude=env.cruise_altitude,
+            battery_soc_pct=env.battery_soc_pct,
+            landing_zones=env.landing_zones,
+        )
+
+        self.assertTrue(intervention.is_overridden)
+        self.assertEqual(intervention.flight_mode, FlightMode.EMERGENCY_LAND)
+        self.assertEqual(intervention.executed_action, 10)  # ACTION_DESCEND
+
+        next_state, reward, done, info = env.step(intervention.executed_action)
+
+        self.assertTrue(done)
+        self.assertEqual(info.get("outcome"), MissionOutcome.CONTROLLED_LANDING.value)
+        self.assertEqual(info.get("status"), "controlled_landing")
+        self.assertGreater(reward, 0.0)
+
 
 if __name__ == "__main__":
     unittest.main()
+
