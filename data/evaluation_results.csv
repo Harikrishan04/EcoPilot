@@ -1,0 +1,7 @@
+bucket,agent,success_rate_pct,crash_rate_pct,mean_reward,mean_steps,mean_interventions,mean_r_env
+Calm,AdaptiveAgent,4.0,0.0,-48.79,97.0,5.85,0.192
+Calm,StaticBaseline,2.0,22.0,-31.6,81.5,0.0,0.192
+Moderate,AdaptiveAgent,1.0,0.0,-170.3,99.2,27.96,0.463
+Moderate,StaticBaseline,9.0,22.0,-64.66,74.5,0.0,0.463
+Severe,AdaptiveAgent,2.0,0.0,-504.96,61.1,81.59,0.858
+Severe,StaticBaseline,0.0,87.0,-145.11,39.6,0.0,0.858
