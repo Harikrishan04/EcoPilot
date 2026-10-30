@@ -129,37 +129,50 @@ The safety envelope ([`safety.py`](file:///home/hari/Documents/projects/EcoPilot
 
 Evaluated across **100 held-out evaluation seeds** (seeds 5001–5100, strictly disjoint from training) per meteorological bucket from [`configs/baseline_evaluation.json`](configs/baseline_evaluation.json). Raw per-episode trajectories are exported to [`data/evaluation_results.csv`](data/evaluation_results.csv) (900 rows) and summarized in [`data/evaluation_summary.csv`](data/evaluation_summary.csv):
 
-| Condition Bucket | Evaluated Model | Success Rate (%) | 95% Confidence Interval | Safe RTH (%) | Timeout (%) | Crash (%) | Mean Path (m) | Mean Energy (W·h) | Mean Overrides |
-|---|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Calm** ($R_{\text{env}} \approx 0.19$) | **Adaptive Q-Agent** | **95.0%** | $\pm 4.3\%$ | 0.0% | 5.0% | **0.0%** | 641.4 m | 2.78 W·h | 3.93 |
-| | Static Baseline | 91.0% | $\pm 5.6\%$ | 0.0% | 9.0% | **0.0%** | 958.6 m | 4.09 W·h | 6.06 |
-| | Rule-Based A* Planner | **100.0%** | $\pm 0.0\%$ | 0.0% | 0.0% | **0.0%** | 438.0 m | 1.81 W·h | 0.00 |
-| **Moderate** ($R_{\text{env}} \approx 0.47$) | **Adaptive Q-Agent** | **90.0%** | $\pm 5.9\%$ | 0.0% | 10.0% | **0.0%** | 763.7 m | 4.68 W·h | 12.64 |
-| | Static Baseline | 85.0% | $\pm 7.0\%$ | 0.0% | 15.0% | **0.0%** | 903.8 m | 5.38 W·h | 13.99 |
-| | Rule-Based A* Planner | **90.0%** | $\pm 5.9\%$ | 0.0% | 10.0% | **0.0%** | 511.7 m | 4.08 W·h | 13.43 |
-| **Severe** ($R_{\text{env}} \approx 0.90$) | **Adaptive Q-Agent** | 0.0% | $\pm 0.0\%$ | **100.0%** | 0.0% | **0.0%** | 0.3 m | 0.39 W·h | 2.99 |
-| | Static Baseline | 0.0% | $\pm 0.0\%$ | **100.0%** | 0.0% | **0.0%** | 0.6 m | 0.39 W·h | 2.98 |
-| | Rule-Based A* Planner | 1.0% | $\pm 2.0\%$ | **99.0%** | 0.0% | **0.0%** | 6.4 m | 0.41 W·h | 2.97 |
+| Condition Bucket | Evaluated Model | Success Rate (%) | 95% Confidence Interval | Safe RTH (%) | Timeout (%) | Crash (%) | Mean Flight Time (s) | Mean Path (m) | Mean Energy (W·h) | Mean Overrides |
+|---|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Calm** ($R_{\text{env}} \approx 0.19$) | **Adaptive Q-Agent** | **98.0%** | $\pm 2.7\%$ | 0.0% | 2.0% | **0.0%** | 33.9 s | 602.9 m | 2.54 W·h | 1.21 |
+| | Static Baseline | 96.0% | $\pm 3.8\%$ | 0.0% | 4.0% | **0.0%** | 48.5 s | 865.7 m | 3.63 W·h | 2.77 |
+| | Rule-Based A* Planner | **100.0%** | $\pm 0.0\%$ | 0.0% | 0.0% | **0.0%** | 24.0 s | 402.5 m | 1.81 W·h | 0.00 |
+| **Moderate** ($R_{\text{env}} \approx 0.47$) | **Adaptive Q-Agent** | **90.0%** | $\pm 5.9\%$ | 0.0% | 10.0% | **0.0%** | 53.9 s | 739.7 m | 5.02 W·h | 10.46 |
+| | Static Baseline | 89.0% | $\pm 6.1\%$ | 0.0% | 11.0% | **0.0%** | 56.0 s | 722.1 m | 5.05 W·h | 11.43 |
+| | Rule-Based A* Planner | **94.0%** | $\pm 4.7\%$ | 0.0% | 6.0% | **0.0%** | 43.1 s | 459.9 m | 3.80 W·h | 9.26 |
+| **Severe** ($R_{\text{env}} \approx 0.90$) | **Adaptive Q-Agent** | 0.0% | $\pm 0.0\%$ | **100.0%** | 0.0% | **0.0%** | 6.0 s | 1.5 m | 0.40 W·h | 2.97 |
+| | Static Baseline | 1.0% | $\pm 2.0\%$ | **99.0%** | 0.0% | **0.0%** | 7.8 s | 18.7 m | 0.58 W·h | 3.60 |
+| | Rule-Based A* Planner | 2.0% | $\pm 2.7\%$ | **98.0%** | 0.0% | **0.0%** | 6.6 s | 11.8 m | 0.54 W·h | 2.93 |
 
 ### Benchmark Analysis & Target Compliance
-- **Calm Target ($\ge 80\%$)**: Adaptive Agent achieves **95.0%**; A* Planner achieves **100.0%** (PASSED).
-- **Moderate Target ($\ge 65\%$)**: Adaptive Agent achieves **90.0%**; A* Planner achieves **90.0%** (PASSED).
+- **Calm Target ($\ge 80\%$)**: Adaptive Agent achieves **98.0%**; A* Planner achieves **100.0%** (PASSED).
+- **Moderate Target ($\ge 65\%$)**: Adaptive Agent achieves **90.0%**; A* Planner achieves **94.0%** (PASSED).
 - **Collision Rate Target ($0\%$)**: Maintained **0.0%** across all 900 evaluation trials (PASSED).
-- **Timeout Rate Target**: Calm $\le 10\%$ (**5.0%** achieved); Moderate $\le 20\%$ (**10.0%** achieved) (PASSED).
-- **Severe Weather Explicit Outcomes**: **100.0% Safe RTH** abort rate for RL models; zero indefinite hover loops (PASSED).
-- **Energy & Path Advantage**: In Calm weather, Adaptive Agent required **33.1% shorter flight paths** (641.4 m vs 958.6 m) and consumed **32.1% less battery energy** (2.78 Wh vs 4.09 Wh) compared to Static Baseline due to wind-aware routing. In Moderate weather, Adaptive Agent achieved **+5.0 percentage points higher success rate** with **15.5% shorter flight paths** (763.7 m vs 903.8 m) and **13.2% less energy** (4.68 Wh vs 5.38 Wh).
+- **Timeout Rate Target**: Calm $\le 10\%$ (**2.0%** achieved); Moderate $\le 20\%$ (**10.0%** achieved) (PASSED).
+- **Severe Weather Explicit Outcomes**: **100.0% Safe RTH** abort rate for Adaptive Agent; zero indefinite hover loops (PASSED).
+- **Energy & Path Advantage**: In Calm weather, Adaptive Agent required **30.4% shorter flight paths** (602.9 m vs 865.7 m), **30.1% less flight time** (33.9 s vs 48.5 s), and consumed **30.0% less battery energy** (2.54 Wh vs 3.63 Wh) compared to Static Baseline due to wind-aware routing. In Moderate weather, Adaptive Agent achieved **+1.0 percentage points higher success rate** and lower energy (5.02 Wh vs 5.05 Wh).
 
 ---
 
-## 6. Simulation Assumptions and Measured Boundaries
+## 6. Simulation Assumptions, 3D Kinematics and Measured Boundaries
 
-To ensure transparent academic integrity, the following operational limits and assumptions are documented:
-1. **Quasi-Steady Aerodynamics**: Atmospheric variables are sampled per 2-second control step; intra-step vortex shedding and rotor blade tip stall are approximated via lumped dynamic pressure $q$.
-2. **Point-Mass Kinematics**: The quadrotor is modeled with translational inertia and lumped drag; high-frequency roll/pitch attitude rates are assumed to be stabilized by an underlying flight controller.
-3. **Threshold Grounding**:
+To ensure transparent academic integrity, the continuous 3D flight model and operational boundaries are documented:
+1. **3D Flight State & Kinematics**:
+   - Simulated position is tracked continuously as $(x, y, z)$ [m], ground velocity $(v_x, v_y, v_z)$ [m/s], and heading $\psi$ [rad].
+   - Numerical integration uses a semi-implicit Euler scheme over a fixed timestep $\Delta t = 2.0$ seconds (spatial grid scale: 1 cell = 30.0 m horizontal, vertical scale = 400.0 m relief).
+   - Wind drift coupling ($\gamma = 0.05$ hover, $\gamma = 0.20$ flight) dynamically offsets ground velocity vectors.
+   - Bilinear 4-point interpolation determines continuous terrain elevation $h_{\text{ground}}(r, c)$ at fractional coordinates.
+2. **Vehicle Physical Limits**:
+   - Horizontal ground speed capped at $18.0\text{ m/s}$ ($64.8\text{ km/h}$).
+   - Climb rate bounded to $+2.5\text{ m/s}$; descent rate bounded to $-2.0\text{ m/s}$.
+   - Altitude bounded between floor $z_{\text{min}} = 0.15$ ($60\text{ m}$) and ceiling $z_{\text{max}} = 0.85$ ($340\text{ m}$).
+   - Keep-in boundary geofence actively stops boundary breaches; outer runaway threshold is 0.5 cells ($15\text{ m}$).
+3. **Quasi-Steady Aerodynamics & Simplifications**:
+   - Atmospheric variables are sampled per 2-second control step; intra-step vortex shedding and rotor blade tip stall are approximated via lumped dynamic pressure $q = \frac{1}{2}\rho v_{\text{rel}}^2$.
+   - Point-mass translational model assumes fast inner-loop attitude stabilization by the onboard autopilot.
+   - Ground effect and localized micro-thermal updrafts are simplified into lumped air density and thrust compensation scalars.
+4. **Threshold Grounding**:
    - $q_{\text{max}} = 120.0\text{ Pa}$ corresponds to maximum airframe gust loading for a 1.5 kg class quadrotor operating at 14 m/s relative airspeed.
    - $R_{\text{critical}} = 0.85$ corresponds to near-gale wind gusts ($>13\text{ m/s}$) coupled with rapid barometric decline ($>2.5\text{ hPa/h}$).
-   - $\text{Battery Reserve} = 20.0\%$ ensures sufficient capacity for return-to-base maneuvers up to 600 meters away.
+   - $\text{Battery Reserve} = 20.0\%$ ensures sufficient capacity for return-to-base maneuvers up to 600 meters away; $\text{Critical SoC} = 8.0\%$ triggers emergency landing.
+5. **Sample Flight Logs**: Complete per-step continuous telemetry traces for calm, moderate-wind, and emergency missions are recorded and stored in [`data/flight_logs/`](data/flight_logs/).
 
 ---
 

@@ -1,0 +1,388 @@
+{
+  "scenario": "Calm",
+  "seed": 5001,
+  "terminal_outcome": "success",
+  "total_steps": 12,
+  "simulated_flight_time_s": 24.0,
+  "energy_consumed_wh": 2.0022,
+  "battery_end_soc_pct": 97.33,
+  "telemetry_history": [
+    {
+      "step": 0,
+      "elapsed_time_s": 0.0,
+      "position_3d": [
+        12.0,
+        17.0,
+        0.4
+      ],
+      "position_meters": [
+        510.0,
+        330.0,
+        160.0
+      ],
+      "velocity_mps": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "ground_speed_mps": 0.0,
+      "airspeed_mps": 0.0,
+      "heading_rad": -1.176,
+      "terrain_clearance_norm": 0.3799,
+      "battery_soc_pct": 100.0,
+      "power_watts": 0.0,
+      "energy_consumed_wh": 0.0,
+      "r_env": 0.3164,
+      "dynamic_pressure_pa": 0.0,
+      "outcome": "in_flight"
+    },
+    {
+      "step": 1,
+      "elapsed_time_s": 2.0,
+      "position_3d": [
+        12.833,
+        16.1362,
+        0.4
+      ],
+      "position_meters": [
+        484.09,
+        305.01,
+        160.0
+      ],
+      "velocity_mps": [
+        -12.957,
+        -12.495,
+        0.0
+      ],
+      "ground_speed_mps": 18.0,
+      "airspeed_mps": 10.858,
+      "heading_rad": 3.927,
+      "terrain_clearance_norm": 0.3799,
+      "battery_soc_pct": 99.76,
+      "power_watts": 319.68,
+      "energy_consumed_wh": 0.1776,
+      "r_env": 0.2194,
+      "dynamic_pressure_pa": 64.26,
+      "outcome": "in_flight"
+    },
+    {
+      "step": 2,
+      "elapsed_time_s": 4.0,
+      "position_3d": [
+        12.7886,
+        15.1441,
+        0.4
+      ],
+      "position_meters": [
+        454.32,
+        306.34,
+        160.0
+      ],
+      "velocity_mps": [
+        -14.881,
+        0.665,
+        0.0
+      ],
+      "ground_speed_mps": 14.896,
+      "airspeed_mps": 9.215,
+      "heading_rad": 4.7124,
+      "terrain_clearance_norm": 0.2937,
+      "battery_soc_pct": 99.56,
+      "power_watts": 279.87,
+      "energy_consumed_wh": 0.3331,
+      "r_env": 0.2219,
+      "dynamic_pressure_pa": 46.29,
+      "outcome": "in_flight"
+    },
+    {
+      "step": 3,
+      "elapsed_time_s": 6.0,
+      "position_3d": [
+        13.622,
+        14.2807,
+        0.4
+      ],
+      "position_meters": [
+        428.42,
+        281.34,
+        160.0
+      ],
+      "velocity_mps": [
+        -12.951,
+        -12.501,
+        0.0
+      ],
+      "ground_speed_mps": 18.0,
+      "airspeed_mps": 10.778,
+      "heading_rad": 3.927,
+      "terrain_clearance_norm": 0.2664,
+      "battery_soc_pct": 99.32,
+      "power_watts": 317.43,
+      "energy_consumed_wh": 0.5094,
+      "r_env": 0.217,
+      "dynamic_pressure_pa": 63.32,
+      "outcome": "in_flight"
+    },
+    {
+      "step": 4,
+      "elapsed_time_s": 8.0,
+      "position_3d": [
+        13.5768,
+        13.2888,
+        0.4
+      ],
+      "position_meters": [
+        398.66,
+        282.7,
+        160.0
+      ],
+      "velocity_mps": [
+        -14.879,
+        0.678,
+        0.0
+      ],
+      "ground_speed_mps": 14.894,
+      "airspeed_mps": 9.25,
+      "heading_rad": 4.7124,
+      "terrain_clearance_norm": 0.2674,
+      "battery_soc_pct": 99.11,
+      "power_watts": 280.58,
+      "energy_consumed_wh": 0.6653,
+      "r_env": 0.2237,
+      "dynamic_pressure_pa": 46.63,
+      "outcome": "in_flight"
+    },
+    {
+      "step": 5,
+      "elapsed_time_s": 10.0,
+      "position_3d": [
+        13.5314,
+        12.2969,
+        0.4
+      ],
+      "position_meters": [
+        368.91,
+        284.06,
+        160.0
+      ],
+      "velocity_mps": [
+        -14.879,
+        0.681,
+        0.0
+      ],
+      "ground_speed_mps": 14.894,
+      "airspeed_mps": 9.256,
+      "heading_rad": 4.7124,
+      "terrain_clearance_norm": 0.2683,
+      "battery_soc_pct": 98.9,
+      "power_watts": 280.71,
+      "energy_consumed_wh": 0.8213,
+      "r_env": 0.224,
+      "dynamic_pressure_pa": 46.7,
+      "outcome": "in_flight"
+    },
+    {
+      "step": 6,
+      "elapsed_time_s": 12.0,
+      "position_3d": [
+        14.3633,
+        11.432,
+        0.4
+      ],
+      "position_meters": [
+        342.96,
+        259.1,
+        160.0
+      ],
+      "velocity_mps": [
+        -12.973,
+        -12.478,
+        0.0
+      ],
+      "ground_speed_mps": 18.0,
+      "airspeed_mps": 11.059,
+      "heading_rad": 3.927,
+      "terrain_clearance_norm": 0.2588,
+      "battery_soc_pct": 98.66,
+      "power_watts": 325.48,
+      "energy_consumed_wh": 1.0021,
+      "r_env": 0.2253,
+      "dynamic_pressure_pa": 66.67,
+      "outcome": "in_flight"
+    },
+    {
+      "step": 7,
+      "elapsed_time_s": 14.0,
+      "position_3d": [
+        14.3156,
+        10.4405,
+        0.4
+      ],
+      "position_meters": [
+        313.22,
+        260.53,
+        160.0
+      ],
+      "velocity_mps": [
+        -14.873,
+        0.714,
+        0.0
+      ],
+      "ground_speed_mps": 14.89,
+      "airspeed_mps": 9.347,
+      "heading_rad": 4.7124,
+      "terrain_clearance_norm": 0.2589,
+      "battery_soc_pct": 98.45,
+      "power_watts": 282.59,
+      "energy_consumed_wh": 1.1591,
+      "r_env": 0.2286,
+      "dynamic_pressure_pa": 47.62,
+      "outcome": "in_flight"
+    },
+    {
+      "step": 8,
+      "elapsed_time_s": 16.0,
+      "position_3d": [
+        15.148,
+        9.5762,
+        0.4
+      ],
+      "position_meters": [
+        287.29,
+        235.56,
+        160.0
+      ],
+      "velocity_mps": [
+        -12.965,
+        -12.486,
+        0.0
+      ],
+      "ground_speed_mps": 18.0,
+      "airspeed_mps": 10.961,
+      "heading_rad": 3.927,
+      "terrain_clearance_norm": 0.2589,
+      "battery_soc_pct": 98.22,
+      "power_watts": 322.62,
+      "energy_consumed_wh": 1.3383,
+      "r_env": 0.2224,
+      "dynamic_pressure_pa": 65.48,
+      "outcome": "in_flight"
+    },
+    {
+      "step": 9,
+      "elapsed_time_s": 18.0,
+      "position_3d": [
+        15.1036,
+        8.5841,
+        0.4
+      ],
+      "position_meters": [
+        257.52,
+        236.89,
+        160.0
+      ],
+      "velocity_mps": [
+        -14.881,
+        0.667,
+        0.0
+      ],
+      "ground_speed_mps": 14.896,
+      "airspeed_mps": 9.22,
+      "heading_rad": 4.7124,
+      "terrain_clearance_norm": 0.255,
+      "battery_soc_pct": 98.01,
+      "power_watts": 279.98,
+      "energy_consumed_wh": 1.4939,
+      "r_env": 0.2222,
+      "dynamic_pressure_pa": 46.34,
+      "outcome": "in_flight"
+    },
+    {
+      "step": 10,
+      "elapsed_time_s": 20.0,
+      "position_3d": [
+        15.937,
+        7.7208,
+        0.4
+      ],
+      "position_meters": [
+        231.62,
+        211.89,
+        160.0
+      ],
+      "velocity_mps": [
+        -12.95,
+        -12.502,
+        0.0
+      ],
+      "ground_speed_mps": 18.0,
+      "airspeed_mps": 10.762,
+      "heading_rad": 3.927,
+      "terrain_clearance_norm": 0.2495,
+      "battery_soc_pct": 97.77,
+      "power_watts": 316.99,
+      "energy_consumed_wh": 1.67,
+      "r_env": 0.2166,
+      "dynamic_pressure_pa": 63.13,
+      "outcome": "in_flight"
+    },
+    {
+      "step": 11,
+      "elapsed_time_s": 22.0,
+      "position_3d": [
+        15.8942,
+        6.7285,
+        0.4
+      ],
+      "position_meters": [
+        201.85,
+        213.17,
+        160.0
+      ],
+      "velocity_mps": [
+        -14.885,
+        0.643,
+        0.0
+      ],
+      "ground_speed_mps": 14.899,
+      "airspeed_mps": 9.157,
+      "heading_rad": 4.7124,
+      "terrain_clearance_norm": 0.2495,
+      "battery_soc_pct": 97.57,
+      "power_watts": 278.68,
+      "energy_consumed_wh": 1.8248,
+      "r_env": 0.2189,
+      "dynamic_pressure_pa": 45.7,
+      "outcome": "in_flight"
+    },
+    {
+      "step": 12,
+      "elapsed_time_s": 24.0,
+      "position_3d": [
+        16.7272,
+        5.8647,
+        0.4
+      ],
+      "position_meters": [
+        175.94,
+        188.18,
+        160.0
+      ],
+      "velocity_mps": [
+        -12.956,
+        -12.495,
+        0.0
+      ],
+      "ground_speed_mps": 18.0,
+      "airspeed_mps": 10.849,
+      "heading_rad": 3.927,
+      "terrain_clearance_norm": 0.2496,
+      "battery_soc_pct": 97.33,
+      "power_watts": 319.41,
+      "energy_consumed_wh": 2.0022,
+      "r_env": 0.2191,
+      "dynamic_pressure_pa": 64.15,
+      "outcome": "success"
+    }
+  ]
+}

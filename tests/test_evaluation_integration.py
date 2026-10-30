@@ -69,8 +69,8 @@ class TestEvaluationIntegration(unittest.TestCase):
         required_episode_cols = [
             "episode_id", "seed", "bucket", "agent", "outcome", "status",
             "success", "safe_rth", "controlled_landing", "timeout", "crash", "battery_depleted",
-            "steps", "path_length_cells", "path_length_m", "energy_consumed_wh",
-            "battery_end_pct", "total_reward", "interventions", "override_reasons",
+            "steps", "simulated_flight_time_s", "path_length_cells", "path_length_m", "energy_consumed_wh",
+            "min_clearance_norm", "battery_end_pct", "total_reward", "interventions", "override_reasons",
             "wind_speed_mps", "wind_dir_deg", "gust_variance", "temp_k", "pressure_pa",
             "relative_humidity", "pressure_trend_hpa_h", "air_density_kg_m3", "r_env"
         ]
@@ -93,8 +93,8 @@ class TestEvaluationIntegration(unittest.TestCase):
             "bucket", "agent", "trials", "success_rate_pct", "ci_95_pct",
             "safe_rth_rate_pct", "controlled_landing_rate_pct", "timeout_rate_pct",
             "crash_rate_pct", "battery_depletion_rate_pct", "mean_flight_steps",
-            "mean_path_length_m", "mean_energy_wh", "mean_interventions",
-            "mean_reward", "mean_wind_speed_mps", "mean_r_env"
+            "mean_flight_time_s", "mean_path_length_m", "mean_energy_wh", "mean_min_clearance",
+            "mean_interventions", "mean_reward", "mean_wind_speed_mps", "mean_r_env"
         ]
         for col in required_summary_cols:
             self.assertIn(col, sum_rows[0], f"Missing required column in summary CSV: {col}")

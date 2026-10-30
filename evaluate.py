@@ -206,9 +206,11 @@ def run_evaluation_trial(
         "crash": int("crash" in outcome),
         "battery_depleted": int(outcome == "battery_depleted"),
         "steps": steps,
+        "simulated_flight_time_s": round(steps * env.dt_seconds, 1),
         "path_length_cells": round(path_len_cells, 2),
         "path_length_m": round(path_len_m, 1),
         "energy_consumed_wh": round(info.get("energy_wh", 0.0), 3),
+        "min_clearance_norm": round(min((t.terrain_clearance_norm for t in env.telemetry_history), default=0.0), 3),
         "battery_end_pct": round(info.get("battery_soc", 0.0), 1),
         "total_reward": round(total_reward, 2),
         "interventions": interventions,
@@ -318,8 +320,10 @@ def evaluate_all(
             batt_dep_count = sum(r["battery_depleted"] for r in agent_trials)
 
             mean_steps = sum(r["steps"] for r in agent_trials) / n
+            mean_flight_time = sum(r["simulated_flight_time_s"] for r in agent_trials) / n
             mean_path_m = sum(r["path_length_m"] for r in agent_trials) / n
             mean_energy = sum(r["energy_consumed_wh"] for r in agent_trials) / n
+            mean_clearance = sum(r["min_clearance_norm"] for r in agent_trials) / n
             mean_interv = sum(r["interventions"] for r in agent_trials) / n
             mean_rew = sum(r["total_reward"] for r in agent_trials) / n
             mean_wind = sum(r["wind_speed_mps"] for r in agent_trials) / n
@@ -337,8 +341,10 @@ def evaluate_all(
                 "crash_rate_pct": round((crash_count / n) * 100.0, 1),
                 "battery_depletion_rate_pct": round((batt_dep_count / n) * 100.0, 1),
                 "mean_flight_steps": round(mean_steps, 1),
+                "mean_flight_time_s": round(mean_flight_time, 1),
                 "mean_path_length_m": round(mean_path_m, 1),
                 "mean_energy_wh": round(mean_energy, 3),
+                "mean_min_clearance": round(mean_clearance, 3),
                 "mean_interventions": round(mean_interv, 2),
                 "mean_reward": round(mean_rew, 1),
                 "mean_wind_speed_mps": round(mean_wind, 2),
@@ -379,12 +385,83 @@ def evaluate_all(
     # 3. Generate Evaluation Charts
     generate_comparison_charts(summary_for_charts, charts_png_path)
 
+    # 4. Export Representative Sample Flight Logs for Calm, Moderate, and Emergency Scenarios
+    flight_logs_dir = os.path.join(os.path.dirname(os.path.abspath(episodes_csv_path)), "flight_logs")
+    export_sample_flight_logs(env=env, config=config, output_dir=flight_logs_dir)
+
     return {
         "summary": summary_for_charts,
         "episodes_csv": episodes_csv_path,
         "summary_csv": summary_csv_path,
         "charts_png": charts_png_path,
     }
+
+
+def export_sample_flight_logs(
+    env: DroneEnv,
+    config: Dict[str, Any],
+    output_dir: str = "data/flight_logs",
+) -> None:
+    """
+    Exports detailed, timestamped 3D flight logs for representative Calm,
+    Moderate, and Emergency scenarios.
+    """
+    os.makedirs(output_dir, exist_ok=True)
+    buckets_cfg = config["condition_buckets"]
+    eval_cfg = config["evaluation"]
+    adaptive_agent = QAgent()
+    adaptive_agent.load_policy_json("data/q_table_adaptive.json")
+
+    scenarios = [
+        ("calm_flight_log.json", "Calm", 5001),
+        ("moderate_flight_log.json", "Moderate", 5002),
+        ("emergency_flight_log.json", "Severe", 5003),
+    ]
+
+    for filename, bucket_name, seed in scenarios:
+        env.reset(seed=seed)
+        run_evaluation_trial(
+            env=env,
+            agent=adaptive_agent,
+            agent_type="AdaptiveAgent",
+            bucket_name=bucket_name,
+            seed=seed,
+            bucket_cfg=buckets_cfg[bucket_name],
+            eval_cfg=eval_cfg,
+        )
+        log_data = {
+            "scenario": bucket_name,
+            "seed": seed,
+            "terminal_outcome": env.outcome.value,
+            "total_steps": env.step_count,
+            "simulated_flight_time_s": round(env.step_count * env.dt_seconds, 1),
+            "energy_consumed_wh": round(env.energy_consumed_wh, 4),
+            "battery_end_soc_pct": round(env.battery_soc_pct, 2),
+            "telemetry_history": [
+                {
+                    "step": t.step,
+                    "elapsed_time_s": t.elapsed_time_s,
+                    "position_3d": [round(x, 4) for x in t.position_3d],
+                    "position_meters": [round(x, 2) for x in t.position_meters],
+                    "velocity_mps": [round(x, 3) for x in t.velocity_mps],
+                    "ground_speed_mps": round(t.ground_speed_mps, 3),
+                    "airspeed_mps": round(t.airspeed_mps, 3),
+                    "heading_rad": round(t.heading_rad, 4),
+                    "terrain_clearance_norm": round(t.terrain_clearance_norm, 4),
+                    "battery_soc_pct": round(t.battery_soc_pct, 2),
+                    "power_watts": round(t.power_watts, 2),
+                    "energy_consumed_wh": round(t.energy_consumed_wh, 4),
+                    "r_env": round(t.r_env, 4),
+                    "dynamic_pressure_pa": round(t.dynamic_pressure_pa, 2),
+                    "outcome": t.outcome.value if hasattr(t.outcome, "value") else str(t.outcome),
+                }
+                for t in env.telemetry_history
+            ],
+        }
+        out_path = os.path.join(output_dir, filename)
+        with open(out_path, "w") as f:
+            json.dump(log_data, f, indent=2)
+        print(f"[save] Sample flight log saved → {out_path}")
 
 
 def generate_comparison_charts(summary: Dict[str, Dict[str, Dict]], output_path: str) -> None:
