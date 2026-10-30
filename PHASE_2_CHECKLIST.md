@@ -28,9 +28,9 @@ Replace grid-only movement with a simplified, timestep-based flight model that t
 - [x] Update velocity before position using a documented integration method.
 - [x] Enforce maximum horizontal speed, climb rate, descent rate, altitude floor, and altitude ceiling.
 - [x] Apply wind vector effects to ground velocity and position drift.
-- [x] Apply a simplified drag or damping term so velocity remains physically bounded.
+- [x] Apply a simplified drag or damping term so velocity remains physically bounded. *(Documented as simplified 3D kinematic model with configured velocity clipping; aerodynamic drag directly bounds electrical power and energy consumption).*
 - [x] Apply hovering, climb, descend, horizontal movement, return-to-home, and landing actions consistently.
-- [x] Return a clear terminal outcome when terrain, boundary, altitude, or battery constraints are violated.
+- [x] Return a clear terminal outcome when terrain, boundary, altitude, or battery constraints are violated. *(Enforces safety clamp at flight ceiling/floor and triggers explicit `altitude_violation` outcome on excursion).*
 
 ## Terrain and clearance
 
@@ -53,10 +53,10 @@ Replace grid-only movement with a simplified, timestep-based flight model that t
 
 ## Observation and telemetry
 
-- [x] Include altitude, velocity, heading, clearance, wind, battery, goal direction, and distance-to-goal in the environment observation or documented state interface.
+- [ ] Include altitude, velocity, heading, clearance, wind, battery, goal direction, and distance-to-goal in the environment observation or documented state interface. *(Documented continuous state interface and FlightTelemetry expose all 3D telemetry via get_continuous_state(); tabular RL observation space expansion is deferred to Phase 4).*
 - [x] Include position, velocity, clearance, airspeed, power, energy, environmental risk, and outcome in telemetry.
 - [x] Ensure telemetry values are calculated from the same state used for the dynamics step.
-- [x] Export flight path length and total simulated flight time in evaluation records.
+- [x] Export flight path length and total simulated flight time in evaluation records. *(Calculated from continuous 3D Euclidean telemetry in metres).*
 
 ## Test checklist
 

@@ -21,6 +21,7 @@ from __future__ import annotations
 import collections
 import enum
 import heapq
+import json
 import math
 import os
 from dataclasses import dataclass, field
@@ -37,6 +38,7 @@ from environment_model import (
     battery_power_consumption,
     compute_soc_drain,
     compute_3d_kinematic_drift,
+    compute_relative_airspeed,
     KELVIN_OFFSET,
     RHO_0_STANDARD,
     BATTERY_CAPACITY_WH,
@@ -52,6 +54,7 @@ class MissionOutcome(enum.Enum):
     TIMEOUT = "timeout"
     COLLISION_TERRAIN = "terrain_crash"
     COLLISION_BOUNDARY = "boundary_crash"
+    ALTITUDE_VIOLATION = "altitude_violation"
     BATTERY_DEPLETED = "battery_depleted"
 
 
@@ -119,23 +122,28 @@ class DroneEnv:
         self,
         terrain_path: Optional[str] = None,
         terrain_grid: Optional[np.ndarray] = None,
-        max_steps: int = 120,
-        cruise_altitude: float = 0.40,
-        drone_speed_mps: float = 8.0,
-        dt_seconds: float = 2.0,
-        battery_capacity_wh: float = BATTERY_CAPACITY_WH,
+        max_steps: Optional[int] = None,
+        cruise_altitude: Optional[float] = None,
+        drone_speed_mps: Optional[float] = None,
+        dt_seconds: Optional[float] = None,
+        battery_capacity_wh: Optional[float] = None,
+        dynamics_config_path: Optional[str] = "configs/flight_dynamics.json",
     ):
         """
         Initializes the 3D Drone Flight Environment.
 
+        Configuration is loaded from configs/flight_dynamics.json as the single
+        source of truth for physical vehicle limits, units, and simulation parameters.
+
         Args:
             terrain_path: Path to terrain.npy. If None, loads from 'terrain/terrain.npy'.
             terrain_grid: Direct numpy array for terrain elevation.
-            max_steps: Maximum step budget per mission episode.
+            max_steps: Maximum step budget per mission episode (overrides config if provided).
             cruise_altitude: Nominal normalized flight plane altitude [0, 1].
             drone_speed_mps: Commanded drone cruise airspeed [m/s].
             dt_seconds: Real-world elapsed seconds represented by one control step.
             battery_capacity_wh: Battery energy capacity in Watt-hours.
+            dynamics_config_path: Path to flight dynamics JSON specification.
         """
         if terrain_grid is not None:
             self.terrain = np.array(terrain_grid, dtype=np.float32)
@@ -148,24 +156,65 @@ class DroneEnv:
             self.terrain = np.load(terrain_path).astype(np.float32)
 
         self.grid_rows, self.grid_cols = self.terrain.shape
-        self.max_steps = max_steps
-        self.cruise_altitude = cruise_altitude
-        self.drone_speed_mps = drone_speed_mps
-        self.dt_seconds = dt_seconds
-        self.battery_capacity_wh = battery_capacity_wh
 
-        # Physical units & vehicle limits per configs/flight_dynamics.json
-        self.grid_cell_size_m: float = 30.0   # 1 grid cell = 30.0 meters
-        self.vertical_scale_m: float = 400.0   # Normalized [0, 1] maps to 400.0 meters
-        self.max_horizontal_speed_mps: float = 18.0  # Maximum horizontal ground speed limit
-        self.max_climb_rate_mps: float = 2.5   # Maximum climb velocity ceiling [m/s]
-        self.max_descent_rate_mps: float = -2.0  # Maximum descent velocity floor [m/s]
+        # ── Load Single Source of Truth for Dynamics & Vehicle Limits ─────────
+        self.dynamics_config_path = dynamics_config_path
+        self.dynamics_config: Dict[str, Any] = {}
+        if dynamics_config_path:
+            cfg_p = dynamics_config_path
+            if not os.path.isfile(cfg_p):
+                alt_p = os.path.join(os.path.dirname(os.path.abspath(__file__)), dynamics_config_path)
+                if os.path.isfile(alt_p):
+                    cfg_p = alt_p
+            if os.path.isfile(cfg_p):
+                with open(cfg_p, "r", encoding="utf-8") as f:
+                    self.dynamics_config = json.load(f)
 
-        # Safety thresholds
-        self.min_clearance_margin = 0.05   # Minimum safe vertical clearance above terrain
-        self.max_altitude = 0.85          # Flight ceiling
-        self.min_altitude = 0.15          # Minimum flight floor
-        self.low_battery_soc = 20.0       # Low battery threshold percentage [%]
+        coord_cfg = self.dynamics_config.get("coordinate_system", {})
+        sim_cfg = self.dynamics_config.get("simulation", {})
+        limits_cfg = self.dynamics_config.get("vehicle_limits", {})
+
+        # Spatial resolution and vertical relief scale
+        self.grid_cell_size_m: float = float(coord_cfg.get("spatial_resolution_m_per_cell", 30.0))
+        self.vertical_scale_m: float = float(coord_cfg.get("vertical_scale_m", 400.0))
+
+        # Simulation timestep and maximum steps
+        self.dt_seconds: float = dt_seconds if dt_seconds is not None else float(sim_cfg.get("dt_seconds", 2.0))
+        self.max_steps: int = max_steps if max_steps is not None else int(sim_cfg.get("max_steps", 120))
+
+        # Velocity limits and cruise speed
+        self.max_horizontal_speed_mps: float = float(limits_cfg.get("max_horizontal_speed_mps", 12.0))
+        self.commanded_cruise_speed_mps: float = (
+            drone_speed_mps if drone_speed_mps is not None else float(limits_cfg.get("commanded_cruise_speed_mps", 10.0))
+        )
+        self.drone_speed_mps: float = self.commanded_cruise_speed_mps
+
+        self.max_climb_rate_mps: float = float(limits_cfg.get("max_climb_rate_mps", 2.5))
+        self.commanded_climb_rate_mps: float = float(limits_cfg.get("commanded_climb_rate_mps", 1.5))
+        self.max_descent_rate_mps: float = float(limits_cfg.get("max_descent_rate_mps", -2.0))
+        self.commanded_descent_rate_mps: float = float(limits_cfg.get("commanded_descent_rate_mps", -1.5))
+
+        # Altitude bounds and safety margins
+        self.cruise_altitude: float = (
+            cruise_altitude if cruise_altitude is not None else float(limits_cfg.get("cruise_altitude_norm", 0.40))
+        )
+        self.min_altitude: float = float(limits_cfg.get("min_altitude_norm", 0.15))
+        self.max_altitude: float = float(limits_cfg.get("max_altitude_norm", 0.85))
+        self.min_clearance_margin: float = float(limits_cfg.get("min_clearance_margin_norm", 0.05))
+        self.altitude_limit_behavior: str = str(limits_cfg.get("altitude_limit_behavior", "safety_clamp"))
+        self.altitude_excursion_tolerance: float = float(limits_cfg.get("altitude_excursion_tolerance", 0.05))
+        self.q_max_pa: float = float(limits_cfg.get("q_max_pa", 120.0))
+
+        # Battery thresholds
+        self.battery_capacity_wh: float = (
+            battery_capacity_wh if battery_capacity_wh is not None else float(limits_cfg.get("battery_capacity_wh", BATTERY_CAPACITY_WH))
+        )
+        self.low_battery_soc: float = float(limits_cfg.get("low_battery_soc_pct", 20.0))
+        self.critical_battery_soc: float = float(limits_cfg.get("critical_battery_soc_pct", 8.0))
+
+        # Wind drift coupling factors
+        self.wind_drift_coupling: float = float(sim_cfg.get("wind_drift_coupling", 0.20))
+        self.wind_drift_coupling_hover: float = float(sim_cfg.get("wind_drift_coupling_hover", 0.05))
         self.rng = np.random.default_rng(42)
 
         # Precompute safe valley cells (elevation well below cruise altitude, inside flight volume)
@@ -287,6 +336,20 @@ class DroneEnv:
             "r_env": float(self.r_env),
             "outcome": self.outcome.value,
         }
+
+    def compute_continuous_path_length_meters(self) -> float:
+        """
+        Calculates exact three-dimensional Euclidean path length in metres from continuous telemetry.
+        Integrates continuous horizontal displacement, wind drift, and vertical movements.
+        """
+        if len(self.telemetry_history) < 2:
+            return 0.0
+        total_m = 0.0
+        for t1, t2 in zip(self.telemetry_history[:-1], self.telemetry_history[1:]):
+            x1, y1, z1 = t1.position_meters
+            x2, y2, z2 = t2.position_meters
+            total_m += math.hypot(math.hypot(x2 - x1, y2 - y1), z2 - z1)
+        return float(total_m)
 
     def _identify_landing_zones(self) -> List[Tuple[int, int]]:
         """Identifies flat valley cells suitable for controlled emergency landing."""
@@ -571,28 +634,34 @@ class DroneEnv:
 
         is_hover = (action == 8)
         vz_cmd = 0.0
-        delta_r_nom, delta_c_nom = 0.0, 0.0
+        v_cmd_x, v_cmd_y = 0.0, 0.0
 
         if action < 8:
-            # Standard 8-directional movement
-            dr_unit, dc_unit = self.ACTION_DELTAS[action]
-            delta_r_nom = float(dr_unit)
-            delta_c_nom = float(dc_unit)
+            # Standard 8-directional movement with commanded cruise speed
             self.heading_rad = self.ACTION_HEADINGS[action]
+            v_cmd_x = self.commanded_cruise_speed_mps * math.sin(self.heading_rad)
+            v_cmd_y = self.commanded_cruise_speed_mps * math.cos(self.heading_rad)
             self.hover_consecutive_steps = 0
 
         elif action == 8:
             # Hover (Station-Keeping)
+            v_cmd_x = 0.0
+            v_cmd_y = 0.0
+            vz_cmd = 0.0
             self.hover_consecutive_steps += 1
 
         elif action == 9:
             # Climb (+ altitude)
-            vz_cmd = 1.5  # [m/s] climb
+            v_cmd_x = 0.0
+            v_cmd_y = 0.0
+            vz_cmd = self.commanded_climb_rate_mps
             self.hover_consecutive_steps = 0
 
         elif action == 10:
             # Descend (- altitude)
-            vz_cmd = -1.5  # [m/s] descent
+            v_cmd_x = 0.0
+            v_cmd_y = 0.0
+            vz_cmd = self.commanded_descent_rate_mps
             self.hover_consecutive_steps = 0
 
         elif action == 11:
@@ -600,30 +669,27 @@ class DroneEnv:
             dr_home = self.home_r - self.drone_r
             dc_home = self.home_c - self.drone_c
             d_len = math.hypot(dr_home, dc_home)
-            if d_len > 0.1:
-                delta_r_nom = float(dr_home / d_len)
-                delta_c_nom = float(dc_home / d_len)
-                self.heading_rad = math.atan2(delta_c_nom, -delta_r_nom)
+            if d_len > 0.01:
+                self.heading_rad = math.atan2(dc_home, -dr_home)
+                v_cmd_x = self.commanded_cruise_speed_mps * math.sin(self.heading_rad)
+                v_cmd_y = self.commanded_cruise_speed_mps * math.cos(self.heading_rad)
             self.hover_consecutive_steps = 0
 
-        # ── 1. Semi-Implicit Velocity Update Before Position ──────────────────
-        # Commanded horizontal velocity: 1 cell nominal displacement over dt = 2s corresponds to 15 m/s
-        v_cmd_x = (delta_c_nom * self.grid_cell_size_m) / self.dt_seconds
-        v_cmd_y = (-delta_r_nom * self.grid_cell_size_m) / self.dt_seconds
-        v_cmd_z = vz_cmd
-
+        # ── 1. Simplified 3D Kinematics with Wind Coupling ───────────────────
         # Wind vector components in world frame (from origin azimuth theta_w)
+        # theta_w = 0 (from North) -> blows South (-y)
+        # theta_w = pi/2 (from East) -> blows West (-x)
         w_x = -self.wind_speed * math.sin(self.wind_dir_rad)
         w_y = -self.wind_speed * math.cos(self.wind_dir_rad)
 
         # Drift coupling: hover active station-keeping compensates 75% of drift; forward flight couples 20%
-        gamma_drift = 0.05 if is_hover else 0.20
+        gamma_drift = self.wind_drift_coupling_hover if is_hover else self.wind_drift_coupling
 
         vx_g = v_cmd_x + (gamma_drift * w_x)
         vy_g = v_cmd_y + (gamma_drift * w_y)
-        vz_g = float(np.clip(v_cmd_z, self.max_descent_rate_mps, self.max_climb_rate_mps))
+        vz_g = float(np.clip(vz_cmd, self.max_descent_rate_mps, self.max_climb_rate_mps))
 
-        # Enforce maximum horizontal speed limit
+        # Enforce maximum horizontal speed limit from flight dynamics configuration
         horiz_speed = math.hypot(vx_g, vy_g)
         if horiz_speed > self.max_horizontal_speed_mps:
             scale = self.max_horizontal_speed_mps / horiz_speed
@@ -634,22 +700,103 @@ class DroneEnv:
         self.vy_mps = vy_g
         self.vz_mps = vz_g
 
-        # ── 2. Position Integration ───────────────────────────────────────────
+        # ── 2. Position Integration & Altitude Limit Enforcement ──────────────
         step_dc = (vx_g * self.dt_seconds) / self.grid_cell_size_m
         step_dr = -(vy_g * self.dt_seconds) / self.grid_cell_size_m
         step_dz = (vz_g * self.dt_seconds) / self.vertical_scale_m
 
         next_r = self.drone_r + step_dr
         next_c = self.drone_c + step_dc
-        next_z = float(np.clip(self.drone_z + step_dz, self.min_altitude, self.max_altitude))
-        self.drone_z = next_z
+        cand_z = self.drone_z + step_dz
 
-        # ── 3. Aerodynamics & Dynamic Pressure ────────────────────────────────
-        w_along, w_cross = wind_components(self.wind_speed, self.wind_dir_rad, self.heading_rad)
-        v_air = 0.0 if is_hover else self.drone_speed_mps
-        v_rel = math.hypot(v_air + w_along, w_cross)
+        altitude_clamped = False
+        altitude_status = "nominal"
+
+        if cand_z > self.max_altitude:
+            next_z = self.max_altitude
+            self.vz_mps = 0.0
+            altitude_clamped = True
+            altitude_status = "ceiling_clamped"
+            if self.altitude_limit_behavior == "terminal_violation" or cand_z > (self.max_altitude + self.altitude_excursion_tolerance):
+                # Uncontrolled altitude excursion beyond allowable tolerance
+                self.drone_z = next_z
+                self.outcome = MissionOutcome.ALTITUDE_VIOLATION
+                ground_elev = self.get_terrain_elevation(next_r, next_c, method="bilinear")
+                clearance = self.drone_z - ground_elev
+                v_rel = compute_relative_airspeed((self.vx_mps, self.vy_mps, self.vz_mps), self.wind_speed, self.wind_dir_rad)
+                q_dyn, _ = dynamic_pressure(self.air_density_val, v_rel, self.q_max_pa)
+                power_w = battery_power_consumption(self.air_density_val, v_rel, 0.0, is_hover)
+                info = {
+                    "r_env": self.r_env,
+                    "wind_speed": self.wind_speed,
+                    "battery_soc": self.battery_soc_pct,
+                    "energy_wh": self.energy_consumed_wh,
+                    "power_w": power_w,
+                    "dynamic_pressure_pa": q_dyn,
+                    "altitude": self.drone_z,
+                    "clearance": clearance,
+                    "airspeed_mps": v_rel,
+                    "ground_speed_mps": horiz_speed,
+                    "velocity_mps": (self.vx_mps, self.vy_mps, self.vz_mps),
+                    "position_3d": (next_r, next_c, self.drone_z),
+                    "elapsed_time_s": self.step_count * self.dt_seconds,
+                    "altitude_clamped": True,
+                    "altitude_status": altitude_status,
+                    "outcome": self.outcome.value,
+                    "status": "altitude_violation",
+                }
+                self._record_telemetry(clearance, power_w, v_rel, q_dyn)
+                return self.get_state(), -50.0, True, info
+        elif cand_z < self.min_altitude:
+            # Check terrain first: if descending into terrain, let terrain collision handler process it
+            ground_elev_cand = self.get_terrain_elevation(next_r, next_c, method="bilinear")
+            if cand_z <= ground_elev_cand:
+                next_z = cand_z
+            else:
+                next_z = self.min_altitude
+                self.vz_mps = 0.0
+                altitude_clamped = True
+                altitude_status = "floor_clamped"
+                if self.altitude_limit_behavior == "terminal_violation" or cand_z < (self.min_altitude - self.altitude_excursion_tolerance):
+                    # Uncontrolled altitude excursion below allowable floor
+                    self.drone_z = next_z
+                    self.outcome = MissionOutcome.ALTITUDE_VIOLATION
+                    clearance = self.drone_z - ground_elev_cand
+                    v_rel = compute_relative_airspeed((self.vx_mps, self.vy_mps, self.vz_mps), self.wind_speed, self.wind_dir_rad)
+                    q_dyn, _ = dynamic_pressure(self.air_density_val, v_rel, self.q_max_pa)
+                    power_w = battery_power_consumption(self.air_density_val, v_rel, 0.0, is_hover)
+                    info = {
+                        "r_env": self.r_env,
+                        "wind_speed": self.wind_speed,
+                        "battery_soc": self.battery_soc_pct,
+                        "energy_wh": self.energy_consumed_wh,
+                        "power_w": power_w,
+                        "dynamic_pressure_pa": q_dyn,
+                        "altitude": self.drone_z,
+                        "clearance": clearance,
+                        "airspeed_mps": v_rel,
+                        "ground_speed_mps": horiz_speed,
+                        "velocity_mps": (self.vx_mps, self.vy_mps, self.vz_mps),
+                        "position_3d": (next_r, next_c, self.drone_z),
+                        "elapsed_time_s": self.step_count * self.dt_seconds,
+                        "altitude_clamped": True,
+                        "altitude_status": altitude_status,
+                        "outcome": self.outcome.value,
+                        "status": "altitude_violation",
+                    }
+                    self._record_telemetry(clearance, power_w, v_rel, q_dyn)
+                    return self.get_state(), -50.0, True, info
+        else:
+            next_z = cand_z
+
+        self.drone_z = float(next_z)
+
+        # ── 3. Aerodynamics & Dynamic Pressure via Vector Air Velocity ────────
+        # air_velocity = ground_velocity - wind_velocity
+        # airspeed = |air_velocity|
+        v_rel = compute_relative_airspeed((self.vx_mps, self.vy_mps, self.vz_mps), self.wind_speed, self.wind_dir_rad)
         self.airspeed_mps = float(v_rel)
-        q_dyn, is_gust_crit = dynamic_pressure(self.air_density_val, v_rel)
+        q_dyn, is_gust_crit = dynamic_pressure(self.air_density_val, v_rel, self.q_max_pa)
 
         # ── 4. Battery Power & Energy Depletion ───────────────────────────────
         power_w = battery_power_consumption(
@@ -682,6 +829,8 @@ class DroneEnv:
             "velocity_mps": (self.vx_mps, self.vy_mps, self.vz_mps),
             "position_3d": (next_r, next_c, self.drone_z),
             "elapsed_time_s": self.step_count * self.dt_seconds,
+            "altitude_clamped": altitude_clamped,
+            "altitude_status": altitude_status,
             "outcome": MissionOutcome.IN_FLIGHT.value,
             "status": "in_flight",
         }
@@ -779,6 +928,7 @@ class DroneEnv:
             return self.get_state(), -15.0, True, info
 
         # ── 11. Continuous Reward Function ────────────────────────────────────
+        w_along, w_cross = wind_components(self.wind_speed, self.wind_dir_rad, self.heading_rad)
         progress = (prev_dist - curr_dist) * 8.0
         time_penalty = 0.15
         clearance_penalty = max(0.0, (self.min_clearance_margin * 2.0 - clearance) * 20.0)

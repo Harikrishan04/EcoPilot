@@ -147,9 +147,32 @@ def run_evaluation_trial(
         executed_action = action
 
         if envelope is not None:
-            heading = env.ACTION_HEADINGS[action] if action < 8 else env.heading_rad
-            w_along, w_cross = env.wind_speed * math.cos(env.wind_dir_rad - heading), env.wind_speed * math.sin(env.wind_dir_rad - heading)
-            v_rel = math.hypot(env.drone_speed_mps - w_along, w_cross)
+            if action < 8:
+                cand_heading = env.ACTION_HEADINGS[action]
+                v_cmd_x = env.commanded_cruise_speed_mps * math.sin(cand_heading)
+                v_cmd_y = env.commanded_cruise_speed_mps * math.cos(cand_heading)
+                vz_cmd = 0.0
+            elif action == 9:
+                v_cmd_x, v_cmd_y, vz_cmd = 0.0, 0.0, env.commanded_climb_rate_mps
+            elif action == 10:
+                v_cmd_x, v_cmd_y, vz_cmd = 0.0, 0.0, env.commanded_descent_rate_mps
+            else:
+                v_cmd_x, v_cmd_y, vz_cmd = 0.0, 0.0, 0.0
+
+            w_x = -env.wind_speed * math.sin(env.wind_dir_rad)
+            w_y = -env.wind_speed * math.cos(env.wind_dir_rad)
+            gamma = env.wind_drift_coupling_hover if action == 8 else env.wind_drift_coupling
+            cand_vx = v_cmd_x + (gamma * w_x)
+            cand_vy = v_cmd_y + (gamma * w_y)
+            cand_vz = vz_cmd
+            cand_hspeed = math.hypot(cand_vx, cand_vy)
+            if cand_hspeed > env.max_horizontal_speed_mps:
+                scale = env.max_horizontal_speed_mps / cand_hspeed
+                cand_vx *= scale
+                cand_vy *= scale
+
+            # Relative vector airspeed: air_velocity = ground_velocity - wind_velocity
+            v_rel = math.sqrt((cand_vx - w_x) ** 2 + (cand_vy - w_y) ** 2 + cand_vz ** 2)
             q_dyn = 0.5 * env.air_density_val * (v_rel ** 2)
 
             intervention = envelope.evaluate(
@@ -187,9 +210,14 @@ def run_evaluation_trial(
     outcome = info.get("outcome", "unknown")
     status = info.get("status", "unknown")
 
-    # Path length metrics (1 grid cell = 30.0 meters in SRTM 30m resolution)
-    path_len_cells = compute_path_length_cells(env.flight_history)
-    path_len_m = path_len_cells * 30.0
+    # Path length metrics computed from continuous 3D telemetry
+    path_len_m = env.compute_continuous_path_length_meters()
+    path_len_cells = path_len_m / env.grid_cell_size_m
+    sim_flight_time_s = (
+        round(env.telemetry_history[-1].elapsed_time_s, 1)
+        if env.telemetry_history
+        else round(steps * env.dt_seconds, 1)
+    )
 
     unique_reasons = ";".join(sorted(set(reasons_set))) if reasons_set else "NOMINAL"
 
@@ -206,7 +234,7 @@ def run_evaluation_trial(
         "crash": int("crash" in outcome),
         "battery_depleted": int(outcome == "battery_depleted"),
         "steps": steps,
-        "simulated_flight_time_s": round(steps * env.dt_seconds, 1),
+        "simulated_flight_time_s": sim_flight_time_s,
         "path_length_cells": round(path_len_cells, 2),
         "path_length_m": round(path_len_m, 1),
         "energy_consumed_wh": round(info.get("energy_wh", 0.0), 3),
@@ -260,7 +288,11 @@ def evaluate_all(
     print("           Charts          -> " + charts_png_path)
     print("=" * 76)
 
-    env = DroneEnv(max_steps=eval_cfg.get("max_steps", 120))
+    dynamics_cfg_path = eval_cfg.get("flight_dynamics_config", "configs/flight_dynamics.json")
+    env = DroneEnv(
+        max_steps=eval_cfg.get("max_steps", 120),
+        dynamics_config_path=dynamics_cfg_path,
+    )
 
     # Initialize model instances
     loaded_agents: List[Tuple[str, Any]] = []

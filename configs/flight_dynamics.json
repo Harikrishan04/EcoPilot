@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "description": "EcoPilot 3D Flight Dynamics and Physical Limits Configuration",
+  "description": "EcoPilot Simplified 3D Kinematic Flight and Physical Limits Configuration",
   "coordinate_system": {
     "horizontal_frame": "Continuous Cartesian grid with North (-row) and East (+col)",
     "vertical_frame": "Altitude z in normalized [0, 1] relative to local relief plane",
@@ -22,16 +22,16 @@
   },
   "simulation": {
     "dt_seconds": 2.0,
-    "integration_method": "Semi-implicit Euler / discrete kinematics",
+    "integration_method": "Simplified 3D kinematics with wind coupling",
     "terrain_interpolation": "Bilinear 4-point surface interpolation",
-    "wind_drift_coupling": 0.25,
+    "wind_drift_coupling": 0.20,
+    "wind_drift_coupling_hover": 0.05,
     "max_steps": 120
   },
   "vehicle_limits": {
     "drone_mass_kg": 1.5,
     "max_horizontal_speed_mps": 12.0,
-    "commanded_cruise_speed_mps": 8.0,
-    "waypoint_speed_mps": 15.0,
+    "commanded_cruise_speed_mps": 10.0,
     "max_climb_rate_mps": 2.5,
     "commanded_climb_rate_mps": 1.5,
     "max_descent_rate_mps": -2.0,
@@ -40,6 +40,8 @@
     "max_altitude_norm": 0.85,
     "cruise_altitude_norm": 0.40,
     "min_clearance_margin_norm": 0.05,
+    "altitude_limit_behavior": "safety_clamp",
+    "altitude_excursion_tolerance": 0.05,
     "q_max_pa": 120.0,
     "battery_capacity_wh": 75.0,
     "low_battery_soc_pct": 20.0,
@@ -52,23 +54,26 @@
     "thrust_compensation_reference_density_kg_m3": 1.225
   },
   "modeling_assumptions": {
+    "model_type": "simplified_3d_kinematic",
     "modeled_effects": [
       "3D kinematic velocity and position integration with wind vector coupling",
-      "Moist air density with virtual temperature correction (ideal gas law)",
-      "Dynamic aerodynamic pressure q = 0.5 * rho * v_rel^2",
+      "Relative aerodynamic airspeed vector air_velocity = ground_velocity - wind_velocity",
+      "Consistent aerodynamic dynamic pressure q = 0.5 * rho * airspeed^2",
       "Parasitic aerodynamic drag power scaling with relative airspeed cubed",
+      "Moist air density with virtual temperature correction (ideal gas law)",
       "Air density thrust compensation for rotor lift in hot/humid air",
       "Vertical gravitational work for altitude climbs",
       "State of charge (SoC) depletion from continuous electrical power integration",
       "Bilinear terrain elevation interpolation between discrete grid nodes",
-      "Independent safety envelope monitoring with deterministic override"
+      "Continuous 3D Euclidean path length tracking in meters",
+      "Safety envelope altitude geofence clamp and threshold monitoring"
     ],
     "simplified_effects": [
-      "Point mass translational dynamics (attitude and motor RPM inner loops assumed instantaneous)",
-      "Constant lumped parasitic drag coefficient c_drag = 0.08 N/(m/s)^2",
+      "Simplified 3D kinematic model: translational velocity is commanded per action and bounded by configured limits rather than dynamic acceleration integration",
+      "Aerodynamic drag forces affect power consumption and battery energy, but translational ground speed is bounded by kinematic clipping",
+      "Inner-loop attitude stabilization and motor response dynamics are assumed instantaneous",
       "Linear thrust compensation scalar k_thrust = rho0 / rho",
-      "Piecewise-constant ambient wind per control timestep with normal micro-perturbations",
-      "Fixed ground station reference frame without Earth curvature (720m x 720m patch)"
+      "Piecewise-constant ambient wind per control timestep with normal micro-perturbations"
     ]
   }
 }

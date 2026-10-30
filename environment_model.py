@@ -267,6 +267,40 @@ def dynamic_pressure(
     return float(q), is_critical
 
 
+def compute_relative_airspeed(
+    ground_velocity_mps: Tuple[float, float, float],
+    wind_speed_mps: float,
+    wind_dir_rad: float,
+) -> float:
+    """
+    Computes aerodynamic relative airspeed magnitude from actual ground velocity
+    and ambient wind vector:
+        air_velocity = ground_velocity - wind_velocity
+        airspeed = |air_velocity|
+
+    Conventions:
+        - ground_velocity: (vx, vy, vz) in world frame [East, North, Up] in m/s.
+        - wind_dir_rad: azimuth theta_w wind is blowing FROM [rad] (0=North, pi/2=East).
+        - wind_velocity: w_x = -wind_speed * sin(wind_dir), w_y = -wind_speed * cos(wind_dir).
+        - air_velocity: (vx_g - w_x, vy_g - w_y, vz_g).
+
+    Args:
+        ground_velocity_mps: 3D ground velocity vector (vx, vy, vz) [m/s].
+        wind_speed_mps: Sustained ambient wind speed [m/s].
+        wind_dir_rad: Wind vector origin azimuth [rad].
+
+    Returns:
+        Scalar relative airspeed v_rel in [m/s].
+    """
+    vx_g, vy_g, vz_g = ground_velocity_mps
+    w_x = -wind_speed_mps * math.sin(wind_dir_rad)
+    w_y = -wind_speed_mps * math.cos(wind_dir_rad)
+    v_air_x = vx_g - w_x
+    v_air_y = vy_g - w_y
+    v_air_z = vz_g
+    return float(math.sqrt(v_air_x ** 2 + v_air_y ** 2 + v_air_z ** 2))
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # 3. Composite Environmental Risk Score & Adaptive Reward Factor
 # ──────────────────────────────────────────────────────────────────────────────

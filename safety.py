@@ -82,6 +82,8 @@ class SafetyEnvelope:
         max_hover_steps: int = 4,            # Maximum allowable consecutive hover steps
         battery_reserve_pct: float = 20.0,   # Minimum battery reserve before forced RTH [%]
         battery_critical_pct: float = 8.0,   # Critical battery threshold before emergency landing [%]
+        max_altitude: float = 0.85,          # Flight ceiling limit [0, 1]
+        min_altitude: float = 0.15,          # Flight floor limit [0, 1]
         **kwargs,
     ):
         """
@@ -94,6 +96,8 @@ class SafetyEnvelope:
             max_hover_steps: Duration limit for hover station-keeping before forced abort.
             battery_reserve_pct: Battery State of Charge triggering Return-to-Home.
             battery_critical_pct: Battery State of Charge forcing Emergency Landing.
+            max_altitude: Flight altitude ceiling.
+            min_altitude: Flight altitude floor.
         """
         if "low_battery_soc" in kwargs:
             battery_reserve_pct = kwargs.pop("low_battery_soc")
@@ -103,6 +107,8 @@ class SafetyEnvelope:
         self.max_hover_steps = max_hover_steps
         self.battery_reserve_pct = battery_reserve_pct
         self.battery_critical_pct = battery_critical_pct
+        self.max_altitude = max_altitude
+        self.min_altitude = min_altitude
 
     def evaluate(
         self,
@@ -170,6 +176,12 @@ class SafetyEnvelope:
             if clearance < self.terrain_safety_margin:
                 triggers.append(f"TERRAIN_COLLISION_RISK (Clearance {clearance:.3f} < {self.terrain_safety_margin:.3f})")
 
+        # ── Check 5: Altitude Limits Breach ──────────────────────────────────
+        if policy_action == 9 and cruise_altitude >= (self.max_altitude - 0.01):
+            triggers.append(f"ALTITUDE_CEILING_RISK ({cruise_altitude:.2f} >= {self.max_altitude:.2f})")
+        elif policy_action == 10 and cruise_altitude <= (self.min_altitude + 0.01):
+            triggers.append(f"ALTITUDE_FLOOR_RISK ({cruise_altitude:.2f} <= {self.min_altitude:.2f})")
+
         # ── Decision Logic ────────────────────────────────────────────────────
         current_clearance = cruise_altitude - terrain_grid[cur_r, cur_c]
         if not triggers:
@@ -195,6 +207,11 @@ class SafetyEnvelope:
 
         elif (r_env > 0.95 or dynamic_pressure_pa > (self.q_max_pa * 1.3)) and not hover_exhausted:
             # Brief emergency station-keeping (max 4 steps)
+            safe_action = ACTION_HOVER
+            chosen_mode = FlightMode.HOVER_HOLD
+
+        elif any("ALTITUDE" in tr for tr in triggers):
+            # Level station-keeping when altitude limit is reached
             safe_action = ACTION_HOVER
             chosen_mode = FlightMode.HOVER_HOLD
 

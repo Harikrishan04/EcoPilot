@@ -19,7 +19,8 @@
     "max_descent_rate_mps": -2.0,
     "min_altitude_norm": 0.15,
     "max_altitude_norm": 0.85,
-    "battery_capacity_wh": 75.0
+    "battery_capacity_wh": 75.0,
+    "flight_dynamics_config": "configs/flight_dynamics.json"
   },
   "condition_buckets": {
     "Calm": {

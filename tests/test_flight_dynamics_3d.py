@@ -97,7 +97,7 @@ class TestFlightDynamics3D(unittest.TestCase):
         self.assertLess(self.env.vz_mps, 0.0, "Descent vertical velocity was not negative")
 
         # Force drone altitude directly to local terrain level on a mountain ridge away from landing zones
-        self.env.drone_r, self.env.drone_c = 22.0, 1.0
+        self.env.drone_r, self.env.drone_c = 21.0, 2.0
         ground_elev = self.env.get_terrain_elevation(self.env.drone_r, self.env.drone_c)
         self.env.drone_z = ground_elev + 0.005  # 5mm above terrain
 
@@ -338,6 +338,138 @@ class TestFlightDynamics3D(unittest.TestCase):
         run2 = run_fixed_episode(5050)
 
         self.assertEqual(run1, run2, "Telemetry and 3D trajectories differed on identical seed!")
+
+    def test_configuration_wiring_from_flight_dynamics_json(self):
+        """
+        Unit test: Proves configs/flight_dynamics.json is the single source of truth at runtime.
+        Verifies that vehicle limits, units, and simulation parameters configured in JSON
+        are directly loaded and strictly enforced by DroneEnv without hard-coded discrepancies.
+        """
+        import json
+        with open("configs/flight_dynamics.json", "r", encoding="utf-8") as f:
+            cfg = json.load(f)
+
+        limits = cfg["vehicle_limits"]
+        coord = cfg["coordinate_system"]
+        sim = cfg["simulation"]
+
+        env = DroneEnv(dynamics_config_path="configs/flight_dynamics.json")
+
+        # 1. Verify property wiring matches configuration file exactly
+        self.assertEqual(env.max_horizontal_speed_mps, limits["max_horizontal_speed_mps"])
+        self.assertEqual(env.commanded_cruise_speed_mps, limits["commanded_cruise_speed_mps"])
+        self.assertEqual(env.max_climb_rate_mps, limits["max_climb_rate_mps"])
+        self.assertEqual(env.max_descent_rate_mps, limits["max_descent_rate_mps"])
+        self.assertEqual(env.min_altitude, limits["min_altitude_norm"])
+        self.assertEqual(env.max_altitude, limits["max_altitude_norm"])
+        self.assertEqual(env.grid_cell_size_m, coord["spatial_resolution_m_per_cell"])
+        self.assertEqual(env.vertical_scale_m, coord["vertical_scale_m"])
+        self.assertEqual(env.dt_seconds, sim["dt_seconds"])
+        self.assertEqual(env.battery_capacity_wh, limits["battery_capacity_wh"])
+
+        # 2. Runtime proof: under extreme tailwind (e.g. 25 m/s), ground speed cannot exceed configured limit (12 m/s)
+        env.reset(seed=1234)
+        env.wind_speed = 25.0
+        env.wind_dir_rad = math.pi  # Wind FROM South -> blowing North
+        _, _, _, info = env.step(action=0)  # Move North
+
+        observed_ground_speed = info["ground_speed_mps"]
+        configured_limit = limits["max_horizontal_speed_mps"]
+
+        self.assertLessEqual(
+            observed_ground_speed,
+            configured_limit + 1e-6,
+            f"Observed speed {observed_ground_speed:.3f} exceeded configured limit {configured_limit:.3f}",
+        )
+
+    def test_airspeed_matches_ground_velocity_minus_wind_vector(self):
+        """
+        Unit test: Relative airspeed is computed directly from ground velocity vector minus wind vector:
+            air_velocity = ground_velocity - wind_velocity
+            airspeed = |air_velocity|
+        Verifies dynamic pressure and drag power use this exact airspeed.
+        """
+        env = DroneEnv()
+        env.reset(seed=2222)
+        env.drone_r, env.drone_c = 12.0, 12.0
+        env.wind_speed = 8.0
+        env.wind_dir_rad = math.pi / 2.0  # Wind FROM East -> blowing West (-x)
+
+        # Move East (action 2)
+        _, _, _, info = env.step(action=2)
+
+        vx_g, vy_g, vz_g = env.vx_mps, env.vy_mps, env.vz_mps
+        # Wind vector blowing direction
+        w_x = -env.wind_speed * math.sin(env.wind_dir_rad)
+        w_y = -env.wind_speed * math.cos(env.wind_dir_rad)
+
+        v_air_x = vx_g - w_x
+        v_air_y = vy_g - w_y
+        v_air_z = vz_g
+        expected_airspeed = math.sqrt(v_air_x ** 2 + v_air_y ** 2 + v_air_z ** 2)
+
+        self.assertAlmostEqual(env.airspeed_mps, expected_airspeed, places=4)
+        self.assertAlmostEqual(info["airspeed_mps"], expected_airspeed, places=4)
+
+        # Dynamic pressure formula check
+        expected_q = 0.5 * env.air_density_val * (expected_airspeed ** 2)
+        self.assertAlmostEqual(info["dynamic_pressure_pa"], expected_q, places=3)
+
+    def test_continuous_3d_path_length_accuracy(self):
+        """
+        Unit test: Verifies that 3D path length is calculated in metres from continuous telemetry,
+        preserving continuous wind drift and vertical movements without integer grid rounding.
+        """
+        env = DroneEnv()
+        env.reset(seed=3333)
+        env.wind_speed = 0.0
+
+        p0 = env.telemetry_history[0].position_meters
+
+        # Step East (action 2)
+        env.step(action=2)
+        p1 = env.telemetry_history[-1].position_meters
+        seg1_m = math.hypot(p1[0] - p0[0], p1[1] - p0[1])
+
+        # Step Climb (action 9)
+        env.step(action=9)
+        p2 = env.telemetry_history[-1].position_meters
+        seg2_m = abs(p2[2] - p1[2])
+
+        expected_total_m = seg1_m + seg2_m
+        computed_total_m = env.compute_continuous_path_length_meters()
+
+        self.assertAlmostEqual(computed_total_m, expected_total_m, places=3)
+        self.assertGreater(computed_total_m, 0.0)
+
+    def test_altitude_ceiling_and_floor_safety_clamp_and_violation(self):
+        """
+        Unit test: Verifies that altitude ceiling contact engages safety clamp (holding altitude
+        at ceiling and setting vertical velocity to 0), and explicit terminal violation outcome
+        is triggered if configured as a terminal constraint.
+        """
+        env = DroneEnv()
+        env.reset(seed=4444)
+
+        # 1. Safety clamp behavior at flight ceiling
+        env.drone_z = env.max_altitude - 0.005
+        # Command climb
+        _, _, done, info = env.step(action=9)
+        self.assertFalse(done, "Ceiling clamp should keep drone in-flight by default")
+        self.assertAlmostEqual(env.drone_z, env.max_altitude, places=4)
+        self.assertEqual(env.vz_mps, 0.0, "Vertical velocity was not zeroed by ceiling clamp")
+        self.assertTrue(info["altitude_clamped"])
+        self.assertEqual(info["altitude_status"], "ceiling_clamped")
+
+        # 2. Terminal violation outcome when configured as a terminal limit
+        env_viol = DroneEnv()
+        env_viol.altitude_limit_behavior = "terminal_violation"
+        env_viol.reset(seed=4444)
+        env_viol.drone_z = env_viol.max_altitude
+        _, _, done_viol, info_viol = env_viol.step(action=9)
+        self.assertTrue(done_viol, "Expected terminal episode termination on altitude violation")
+        self.assertEqual(info_viol["outcome"], MissionOutcome.ALTITUDE_VIOLATION.value)
+        self.assertEqual(info_viol["status"], "altitude_violation")
 
 
 if __name__ == "__main__":

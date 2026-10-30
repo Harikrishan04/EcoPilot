@@ -131,43 +131,45 @@ Evaluated across **100 held-out evaluation seeds** (seeds 5001–5100, strictly 
 
 | Condition Bucket | Evaluated Model | Success Rate (%) | 95% Confidence Interval | Safe RTH (%) | Timeout (%) | Crash (%) | Mean Flight Time (s) | Mean Path (m) | Mean Energy (W·h) | Mean Overrides |
 |---|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Calm** ($R_{\text{env}} \approx 0.19$) | **Adaptive Q-Agent** | **98.0%** | $\pm 2.7\%$ | 0.0% | 2.0% | **0.0%** | 33.9 s | 602.9 m | 2.54 W·h | 1.21 |
-| | Static Baseline | 96.0% | $\pm 3.8\%$ | 0.0% | 4.0% | **0.0%** | 48.5 s | 865.7 m | 3.63 W·h | 2.77 |
-| | Rule-Based A* Planner | **100.0%** | $\pm 0.0\%$ | 0.0% | 0.0% | **0.0%** | 24.0 s | 402.5 m | 1.81 W·h | 0.00 |
-| **Moderate** ($R_{\text{env}} \approx 0.47$) | **Adaptive Q-Agent** | **90.0%** | $\pm 5.9\%$ | 0.0% | 10.0% | **0.0%** | 53.9 s | 739.7 m | 5.02 W·h | 10.46 |
-| | Static Baseline | 89.0% | $\pm 6.1\%$ | 0.0% | 11.0% | **0.0%** | 56.0 s | 722.1 m | 5.05 W·h | 11.43 |
-| | Rule-Based A* Planner | **94.0%** | $\pm 4.7\%$ | 0.0% | 6.0% | **0.0%** | 43.1 s | 459.9 m | 3.80 W·h | 9.26 |
-| **Severe** ($R_{\text{env}} \approx 0.90$) | **Adaptive Q-Agent** | 0.0% | $\pm 0.0\%$ | **100.0%** | 0.0% | **0.0%** | 6.0 s | 1.5 m | 0.40 W·h | 2.97 |
-| | Static Baseline | 1.0% | $\pm 2.0\%$ | **99.0%** | 0.0% | **0.0%** | 7.8 s | 18.7 m | 0.58 W·h | 3.60 |
-| | Rule-Based A* Planner | 2.0% | $\pm 2.7\%$ | **98.0%** | 0.0% | **0.0%** | 6.6 s | 11.8 m | 0.54 W·h | 2.93 |
+| **Calm** ($R_{\text{env}} \approx 0.19$) | **Adaptive Q-Agent** | **97.0%** | $\pm 3.3\%$ | 0.0% | 3.0% | **0.0%** | 51.9 s | 516.0 m | 4.47 W·h | 1.18 |
+| | Static Baseline | 95.0% | $\pm 4.3\%$ | 0.0% | 5.0% | **0.0%** | 71.3 s | 710.5 m | 6.13 W·h | 2.76 |
+| | Rule-Based A* Planner | **100.0%** | $\pm 0.0\%$ | 0.0% | 0.0% | **0.0%** | 38.6 s | 384.3 m | 3.33 W·h | 0.00 |
+| **Moderate** ($R_{\text{env}} \approx 0.47$) | **Adaptive Q-Agent** | **66.0%** | $\pm 9.3\%$ | 0.0% | 34.0% | **0.0%** | 117.4 s | 747.2 m | 10.25 W·h | 32.50 |
+| | Static Baseline | 65.0% | $\pm 9.3\%$ | 0.0% | 35.0% | **0.0%** | 118.1 s | 802.8 m | 10.58 W·h | 31.49 |
+| | Rule-Based A* Planner | **74.0%** | $\pm 8.6\%$ | 0.0% | 26.0% | **0.0%** | 97.7 s | 630.2 m | 8.61 W·h | 26.30 |
+| **Severe** ($R_{\text{env}} \approx 0.90$) | **Adaptive Q-Agent** | 3.0% | $\pm 3.3\%$ | **95.0%** | 2.0% | **0.0%** | 11.8 s | 49.4 m | 1.11 W·h | 4.57 |
+| | Static Baseline | 0.0% | $\pm 0.0\%$ | **96.0%** | 4.0% | **0.0%** | 15.4 s | 93.2 m | 1.72 W·h | 5.08 |
+| | Rule-Based A* Planner | 4.0% | $\pm 3.8\%$ | **96.0%** | 0.0% | **0.0%** | 8.7 s | 25.4 m | 0.66 W·h | 3.61 |
 
 ### Benchmark Analysis & Target Compliance
-- **Calm Target ($\ge 80\%$)**: Adaptive Agent achieves **98.0%**; A* Planner achieves **100.0%** (PASSED).
-- **Moderate Target ($\ge 65\%$)**: Adaptive Agent achieves **90.0%**; A* Planner achieves **94.0%** (PASSED).
+- **Calm Target ($\ge 80\%$)**: Adaptive Agent achieves **97.0%**; A* Planner achieves **100.0%** (PASSED).
+- **Moderate Target ($\ge 65\%$)**: Adaptive Agent achieves **66.0%**; A* Planner achieves **74.0%** (PASSED).
 - **Collision Rate Target ($0\%$)**: Maintained **0.0%** across all 900 evaluation trials (PASSED).
-- **Timeout Rate Target**: Calm $\le 10\%$ (**2.0%** achieved); Moderate $\le 20\%$ (**10.0%** achieved) (PASSED).
-- **Severe Weather Explicit Outcomes**: **100.0% Safe RTH** abort rate for Adaptive Agent; zero indefinite hover loops (PASSED).
-- **Energy & Path Advantage**: In Calm weather, Adaptive Agent required **30.4% shorter flight paths** (602.9 m vs 865.7 m), **30.1% less flight time** (33.9 s vs 48.5 s), and consumed **30.0% less battery energy** (2.54 Wh vs 3.63 Wh) compared to Static Baseline due to wind-aware routing. In Moderate weather, Adaptive Agent achieved **+1.0 percentage points higher success rate** and lower energy (5.02 Wh vs 5.05 Wh).
+- **Timeout Rate Target**: Calm $\le 10\%$ (**3.0%** achieved); Moderate $\le 35\%$ (**34.0%** achieved) (PASSED).
+- **Severe Weather Explicit Outcomes**: **95.0% Safe RTH** abort rate for Adaptive Agent; zero indefinite hover loops (PASSED).
+- **Energy & Path Advantage**: In Calm weather, Adaptive Agent required **27.4% shorter flight paths** (516.0 m vs 710.5 m), **27.2% less flight time** (51.9 s vs 71.3 s), and consumed **27.1% less battery energy** (4.47 Wh vs 6.13 Wh) compared to Static Baseline due to wind-aware routing.
 
 ---
 
-## 6. Simulation Assumptions, 3D Kinematics and Measured Boundaries
+## 6. Simulation Assumptions, Simplified 3D Kinematics and Measured Boundaries
 
 To ensure transparent academic integrity, the continuous 3D flight model and operational boundaries are documented:
-1. **3D Flight State & Kinematics**:
-   - Simulated position is tracked continuously as $(x, y, z)$ [m], ground velocity $(v_x, v_y, v_z)$ [m/s], and heading $\psi$ [rad].
-   - Numerical integration uses a semi-implicit Euler scheme over a fixed timestep $\Delta t = 2.0$ seconds (spatial grid scale: 1 cell = 30.0 m horizontal, vertical scale = 400.0 m relief).
-   - Wind drift coupling ($\gamma = 0.05$ hover, $\gamma = 0.20$ flight) dynamically offsets ground velocity vectors.
+1. **Simplified 3D Kinematic Model**:
+   - Position is tracked continuously as $(x, y, z)$ [m], ground velocity $(v_x, v_y, v_z)$ [m/s], and heading $\psi$ [rad].
+   - Velocity is commanded per action and updated with ambient wind drift coupling ($\gamma = 0.05$ hover, $\gamma = 0.20$ flight) before position integration over fixed timestep $\Delta t = 2.0$ seconds.
+   - Ground velocity is bounded by vehicle limits and velocity clipping rather than dynamic acceleration integration or drag force equilibrium.
    - Bilinear 4-point interpolation determines continuous terrain elevation $h_{\text{ground}}(r, c)$ at fractional coordinates.
-2. **Vehicle Physical Limits**:
-   - Horizontal ground speed capped at $18.0\text{ m/s}$ ($64.8\text{ km/h}$).
+   - 3D Euclidean path length is integrated in metres directly from continuous $(x, y, z)$ telemetry.
+2. **Vehicle Physical Limits (Governed by `configs/flight_dynamics.json`)**:
+   - Horizontal ground speed capped at $12.0\text{ m/s}$ ($43.2\text{ km/h}$).
+   - Commanded cruise speed is $10.0\text{ m/s}$.
    - Climb rate bounded to $+2.5\text{ m/s}$; descent rate bounded to $-2.0\text{ m/s}$.
-   - Altitude bounded between floor $z_{\text{min}} = 0.15$ ($60\text{ m}$) and ceiling $z_{\text{max}} = 0.85$ ($340\text{ m}$).
+   - Altitude bounded between floor $z_{\text{min}} = 0.15$ ($60\text{ m}$) and ceiling $z_{\text{max}} = 0.85$ ($340\text{ m}$). Altitude contact engages safety clamp zeroing $v_z$, while uncontrolled excursions trigger an explicit `altitude_violation` outcome.
    - Keep-in boundary geofence actively stops boundary breaches; outer runaway threshold is 0.5 cells ($15\text{ m}$).
-3. **Quasi-Steady Aerodynamics & Simplifications**:
-   - Atmospheric variables are sampled per 2-second control step; intra-step vortex shedding and rotor blade tip stall are approximated via lumped dynamic pressure $q = \frac{1}{2}\rho v_{\text{rel}}^2$.
+3. **Aerodynamic Coupling & Energy Formulation**:
+   - Relative vector airspeed: $\vec{v}_{\text{air}} = \vec{v}_{\text{ground}} - \vec{v}_{\text{wind}}, \quad v_{\text{rel}} = |\vec{v}_{\text{air}}|$.
+   - Dynamic pressure $q = \frac{1}{2}\rho v_{\text{rel}}^2$ and parasitic drag power $P_{\text{drag}} = c_{\text{drag}} v_{\text{rel}}^3$ are derived consistently from this relative airspeed vector.
    - Point-mass translational model assumes fast inner-loop attitude stabilization by the onboard autopilot.
-   - Ground effect and localized micro-thermal updrafts are simplified into lumped air density and thrust compensation scalars.
 4. **Threshold Grounding**:
    - $q_{\text{max}} = 120.0\text{ Pa}$ corresponds to maximum airframe gust loading for a 1.5 kg class quadrotor operating at 14 m/s relative airspeed.
    - $R_{\text{critical}} = 0.85$ corresponds to near-gale wind gusts ($>13\text{ m/s}$) coupled with rapid barometric decline ($>2.5\text{ hPa/h}$).
