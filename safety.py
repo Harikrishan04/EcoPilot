@@ -165,14 +165,20 @@ class SafetyEnvelope:
 
         # ── Check 4: Imminent Terrain Obstacle or Boundary Breach ──────────────
         dr, dc = ACTION_DELTAS[policy_action] if policy_action < len(ACTION_DELTAS) else (0, 0)
-        next_r, next_c = cur_r + dr, cur_c + dc
+        r_f = float(current_pos[0]) + dr
+        c_f = float(current_pos[1]) + dc
 
-        out_of_bounds = not (0 <= next_r < rows and 0 <= next_c < cols)
+        out_of_bounds = not (0.0 <= r_f < float(rows) and 0.0 <= c_f < float(cols))
         if out_of_bounds:
-            triggers.append(f"BOUNDARY_BREACH (Target ({next_r},{next_c}) outside {rows}x{cols})")
+            triggers.append(f"BOUNDARY_BREACH (Target ({r_f:.1f},{c_f:.1f}) outside {rows}x{cols})")
         else:
-            predicted_height = terrain_grid[next_r, next_c]
-            clearance = cruise_altitude - predicted_height
+            # Check bounding continuous footprint of target transition
+            r0 = max(0, int(math.floor(r_f)))
+            r1 = min(rows - 1, int(math.ceil(r_f)))
+            c0 = max(0, int(math.floor(c_f)))
+            c1 = min(cols - 1, int(math.ceil(c_f)))
+            peak_height = float(np.max(terrain_grid[r0:r1+1, c0:c1+1]))
+            clearance = cruise_altitude - peak_height
             if clearance < self.terrain_safety_margin:
                 triggers.append(f"TERRAIN_COLLISION_RISK (Clearance {clearance:.3f} < {self.terrain_safety_margin:.3f})")
 
@@ -272,19 +278,23 @@ class SafetyEnvelope:
 
         for action_idx in range(8):
             dr, dc = ACTION_DELTAS[action_idx]
-            cand_r, cand_c = cur_r + dr, cur_c + dc
+            r_f, c_f = float(current_pos[0]) + dr, float(current_pos[1]) + dc
 
             # Must be inside bounds
-            if not (0 <= cand_r < rows and 0 <= cand_c < cols):
+            if not (0.0 <= r_f <= rows - 1.0 and 0.0 <= c_f <= cols - 1.0):
                 continue
 
-            # Must not hit terrain
-            cand_height = terrain_grid[cand_r, cand_c]
+            # Must not hit terrain across transition footprint
+            r0 = max(0, int(math.floor(r_f)))
+            r1 = min(rows - 1, int(math.ceil(r_f)))
+            c0 = max(0, int(math.floor(c_f)))
+            c1 = min(cols - 1, int(math.ceil(c_f)))
+            cand_height = float(np.max(terrain_grid[r0:r1+1, c0:c1+1]))
             if cand_height >= (cruise_altitude - self.terrain_safety_margin):
                 continue
 
             # Distance toward home base
-            dist_home = math.hypot(home_r - cand_r, home_c - cand_c)
+            dist_home = math.hypot(home_r - r_f, home_c - c_f)
             # Route cost penalizes terrain height along the retreat path
             cost = dist_home + (cand_height * 4.0)
 

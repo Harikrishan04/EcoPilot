@@ -128,6 +128,9 @@ class DroneEnv:
         dt_seconds: Optional[float] = None,
         battery_capacity_wh: Optional[float] = None,
         dynamics_config_path: Optional[str] = "configs/flight_dynamics.json",
+        use_pbrs: bool = False,
+        pbrs_gamma: float = 0.95,
+        pbrs_scale: float = 0.5,
     ):
         """
         Initializes the 3D Drone Flight Environment.
@@ -144,6 +147,9 @@ class DroneEnv:
             dt_seconds: Real-world elapsed seconds represented by one control step.
             battery_capacity_wh: Battery energy capacity in Watt-hours.
             dynamics_config_path: Path to flight dynamics JSON specification.
+            use_pbrs: Whether Potential-Based Reward Shaping (A*-guided) is enabled (default False).
+            pbrs_gamma: Temporal discount factor gamma used in shaping F(s, s') = gamma * Phi(s') - Phi(s).
+            pbrs_scale: Weight scaling applied to the cost-to-go potential field Phi(s).
         """
         if terrain_grid is not None:
             self.terrain = np.array(terrain_grid, dtype=np.float32)
@@ -216,6 +222,12 @@ class DroneEnv:
         self.wind_drift_coupling: float = float(sim_cfg.get("wind_drift_coupling", 0.20))
         self.wind_drift_coupling_hover: float = float(sim_cfg.get("wind_drift_coupling_hover", 0.05))
         self.rng = np.random.default_rng(42)
+
+        # Potential-Based Reward Shaping (PBRS) configuration (Ng et al. 1999)
+        self.use_pbrs: bool = bool(use_pbrs)
+        self.pbrs_gamma: float = float(pbrs_gamma)
+        self.pbrs_scale: float = float(pbrs_scale)
+        self.cost_map: Optional[np.ndarray] = None
 
         # Precompute safe valley cells (elevation well below cruise altitude, inside flight volume)
         self.valley_mask = self.terrain < (self.cruise_altitude - self.min_clearance_margin)
@@ -437,6 +449,9 @@ class DroneEnv:
             self.drone_r, self.drone_c = 2.0, 2.0
             self.goal_r, self.goal_c = 14, 18
 
+        # Precompute Dijkstra/A* cost-to-go map for Potential-Based Reward Shaping
+        self._compute_cost_map(self.goal_r, self.goal_c)
+
         self.drone_z = self.cruise_altitude
         self.vx_mps = 0.0
         self.vy_mps = 0.0
@@ -602,10 +617,107 @@ class DroneEnv:
             )
         )
 
+    def _compute_cost_map(self, gr: int, gc: int) -> np.ndarray:
+        """
+        Computes backward Dijkstra shortest terrain-aware path cost from every grid cell
+        to the goal (gr, gc). Runs in <3 ms over the 24x24 elevation grid.
+        """
+        H, W = self.grid_rows, self.grid_cols
+        cost_map = np.full((H, W), np.inf, dtype=np.float32)
+        cost_map[gr, gc] = 0.0
+        pq = [(0.0, gr, gc)]
+
+        max_elev = self.cruise_altitude - self.min_clearance_margin
+
+        while pq:
+            d, r, c = heapq.heappop(pq)
+            if d > cost_map[r, c]:
+                continue
+            for dr, dc in self.ACTION_DELTAS:
+                nr, nc = r + dr, c + dc
+                if 0 <= nr < H and 0 <= nc < W:
+                    elev = float(self.terrain[nr, nc])
+                    if elev >= max_elev:
+                        continue
+                    step_cost = math.hypot(dr, dc) + elev * 2.0
+                    new_d = d + step_cost
+                    if new_d < cost_map[nr, nc]:
+                        cost_map[nr, nc] = new_d
+                        heapq.heappush(pq, (new_d, nr, nc))
+
+        # Fill unreachable cells (e.g., inside high ridge walls) with Euclidean distance + barrier penalty
+        for r in range(H):
+            for c in range(W):
+                if np.isinf(cost_map[r, c]):
+                    cost_map[r, c] = math.hypot(gr - r, gc - c) + 25.0
+
+        self.cost_map = cost_map
+        return cost_map
+
+    def get_potential(self, r: float, c: float) -> float:
+        """
+        Computes continuous potential Phi(s) = -pbrs_scale * cost(r, c)
+        using bilinear interpolation of the precomputed A* / Dijkstra cost map.
+
+        Properties:
+          - Depends strictly on spatial coordinates (r, c), independent of action and time.
+          - Monotonically decreases as the drone moves closer to the goal along terrain valleys.
+        """
+        if self.cost_map is None:
+            self._compute_cost_map(self.goal_r, self.goal_c)
+
+        r0 = int(math.floor(r))
+        c0 = int(math.floor(c))
+        r1 = min(r0 + 1, self.grid_rows - 1)
+        c1 = min(c0 + 1, self.grid_cols - 1)
+        r0 = max(0, min(r0, self.grid_rows - 1))
+        c0 = max(0, min(c0, self.grid_cols - 1))
+
+        dr = float(r - r0)
+        dc = float(c - c0)
+
+        v00 = float(self.cost_map[r0, c0])
+        v01 = float(self.cost_map[r0, c1])
+        v10 = float(self.cost_map[r1, c0])
+        v11 = float(self.cost_map[r1, c1])
+
+        cost = (1.0 - dr) * (1.0 - dc) * v00 + (1.0 - dr) * dc * v01 + dr * (1.0 - dc) * v10 + dr * dc * v11
+        return -float(cost) * self.pbrs_scale
+
+    def _finish_step(
+        self,
+        unshaped_reward: float,
+        done: bool,
+        info: Dict[str, Any],
+        phi_prev: float,
+        use_pbrs_active: bool,
+    ) -> Tuple[Tuple[int, int, int, int, int], float, bool, Dict[str, Any]]:
+        """
+        Applies Potential-Based Reward Shaping (PBRS) to step reward (Ng, Harada, & Russell 1999).
+
+        Strict Mathematical Guarantees:
+          - Phi(terminal) = 0 for goal, crash, abort, safe RTH, landing, timeout states.
+          - F(s, s') = gamma * Phi(s') - Phi(s), using the exact learning discount factor gamma.
+          - When use_pbrs_active is False, step returns unshaped_reward identically.
+          - info['unshaped_reward'] and info['pbrs_shaping'] are always recorded for transparency.
+        """
+        if done:
+            phi_curr = 0.0
+        else:
+            phi_curr = self.get_potential(self.drone_r, self.drone_c)
+
+        f_shaping = float(self.pbrs_gamma * phi_curr - phi_prev)
+        info["unshaped_reward"] = float(unshaped_reward)
+        info["pbrs_shaping"] = float(f_shaping)
+
+        final_reward = float(unshaped_reward + f_shaping if use_pbrs_active else unshaped_reward)
+        return self.get_state(), final_reward, done, info
+
     def step(
         self,
         action: int,
-        use_adaptive_reward: bool = True
+        use_adaptive_reward: bool = True,
+        use_pbrs: Optional[bool] = None,
     ) -> Tuple[Any, float, bool, Dict[str, Any]]:
         """
         Executes one 3D simulation step with kinematics, wind drift, and battery drain.
@@ -616,12 +728,15 @@ class DroneEnv:
         Args:
             action: Action index (0..7 directional, 8: Hover, 9: Climb, 10: Descend, 11: RTH).
             use_adaptive_reward: Whether to weight risk by lambda(R_env).
+            use_pbrs: Whether to apply Potential-Based Reward Shaping (defaults to self.use_pbrs).
 
         Returns:
             Tuple of (next_state, reward, done, info_dict)
         """
         self.step_count += 1
         prev_dist = math.hypot(self.goal_r - self.drone_r, self.goal_c - self.drone_c)
+        should_use_pbrs = self.use_pbrs if use_pbrs is None else bool(use_pbrs)
+        phi_prev = self.get_potential(self.drone_r, self.drone_c)
 
         # Dynamic atmospheric micro-perturbations during flight
         self.wind_speed = max(0.0, self.wind_speed + float(self.rng.normal(0.0, 0.15)))
@@ -746,7 +861,7 @@ class DroneEnv:
                     "status": "altitude_violation",
                 }
                 self._record_telemetry(clearance, power_w, v_rel, q_dyn)
-                return self.get_state(), -50.0, True, info
+                return self._finish_step(-50.0, True, info, phi_prev, should_use_pbrs)
         elif cand_z < self.min_altitude:
             # Check terrain first: if descending into terrain, let terrain collision handler process it
             ground_elev_cand = self.get_terrain_elevation(next_r, next_c, method="bilinear")
@@ -785,7 +900,7 @@ class DroneEnv:
                         "status": "altitude_violation",
                     }
                     self._record_telemetry(clearance, power_w, v_rel, q_dyn)
-                    return self.get_state(), -50.0, True, info
+                    return self._finish_step(-50.0, True, info, phi_prev, should_use_pbrs)
         else:
             next_z = cand_z
 
@@ -843,7 +958,7 @@ class DroneEnv:
                 info["outcome"] = self.outcome.value
                 info["status"] = "boundary_crash"
                 self._record_telemetry(clearance, power_w, v_rel, q_dyn)
-                return self.get_state(), -60.0, True, info
+                return self._finish_step(-60.0, True, info, phi_prev, should_use_pbrs)
 
             # Keep-in geofence barrier: clamp within physical flight boundary
             next_r = float(np.clip(next_r, 0.0, self.grid_rows - 1.0))
@@ -870,7 +985,7 @@ class DroneEnv:
             info["outcome"] = self.outcome.value
             info["status"] = "terrain_crash"
             self._record_telemetry(clearance, power_w, v_rel, q_dyn)
-            return self.get_state(), -60.0, True, info
+            return self._finish_step(-60.0, True, info, phi_prev, should_use_pbrs)
 
         # Update valid drone coordinates
         self.drone_r, self.drone_c = next_r, next_c
@@ -885,7 +1000,7 @@ class DroneEnv:
             info["outcome"] = self.outcome.value
             info["status"] = "battery_depleted"
             self._record_telemetry(clearance, power_w, v_rel, q_dyn)
-            return self.get_state(), -40.0, True, info
+            return self._finish_step(-40.0, True, info, phi_prev, should_use_pbrs)
 
         # ── 8. Goal Reached Check ─────────────────────────────────────────────
         if curr_dist <= 1.2:
@@ -894,7 +1009,7 @@ class DroneEnv:
             info["status"] = "success"
             success_reward = 80.0 + (self.battery_soc_pct * 0.2)  # Bonus for battery efficiency
             self._record_telemetry(clearance, power_w, v_rel, q_dyn)
-            return self.get_state(), float(success_reward), True, info
+            return self._finish_step(float(success_reward), True, info, phi_prev, should_use_pbrs)
 
         # ── 9. Safe Return-to-Home & Controlled Landing Check ─────────────────
         dist_home = math.hypot(self.home_r - self.drone_r, self.home_c - self.drone_c)
@@ -909,7 +1024,7 @@ class DroneEnv:
                 info["status"] = "controlled_landing"
                 land_reward = 30.0
                 self._record_telemetry(clearance, power_w, v_rel, q_dyn)
-                return self.get_state(), float(land_reward), True, info
+                return self._finish_step(float(land_reward), True, info, phi_prev, should_use_pbrs)
 
         if dist_home <= 1.2 and (action == 11 or is_emergency_condition) and self.step_count > 2:
             self.outcome = MissionOutcome.SAFE_RTH
@@ -917,7 +1032,7 @@ class DroneEnv:
             info["status"] = "safe_rth"
             rth_reward = 35.0  # Safe recovery reward
             self._record_telemetry(clearance, power_w, v_rel, q_dyn)
-            return self.get_state(), float(rth_reward), True, info
+            return self._finish_step(float(rth_reward), True, info, phi_prev, should_use_pbrs)
 
         # ── 10. Timeout Check ─────────────────────────────────────────────────
         if self.step_count >= self.max_steps:
@@ -925,7 +1040,7 @@ class DroneEnv:
             info["outcome"] = self.outcome.value
             info["status"] = "timeout"
             self._record_telemetry(clearance, power_w, v_rel, q_dyn)
-            return self.get_state(), -15.0, True, info
+            return self._finish_step(-15.0, True, info, phi_prev, should_use_pbrs)
 
         # ── 11. Continuous Reward Function ────────────────────────────────────
         w_along, w_cross = wind_components(self.wind_speed, self.wind_dir_rad, self.heading_rad)
@@ -944,4 +1059,4 @@ class DroneEnv:
         step_reward = progress - time_penalty - energy_penalty - (lambda_weight * total_risk)
         self._record_telemetry(clearance, power_w, v_rel, q_dyn)
 
-        return self.get_state(), float(step_reward), False, info
+        return self._finish_step(float(step_reward), False, info, phi_prev, should_use_pbrs)

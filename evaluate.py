@@ -177,7 +177,7 @@ def run_evaluation_trial(
 
             intervention = envelope.evaluate(
                 policy_action=action,
-                current_pos=env.drone_pos,
+                current_pos=(env.drone_r, env.drone_c),
                 home_pos=home_pos,
                 r_env=env.r_env,
                 dynamic_pressure_pa=q_dyn,
@@ -201,7 +201,7 @@ def run_evaluation_trial(
             else:
                 consecutive_hover = 0
 
-        use_adaptive = (agent_type == "AdaptiveAgent")
+        use_adaptive = ("Adaptive" in agent_type)
         next_state, reward, done, info = env.step(executed_action, use_adaptive_reward=use_adaptive)
         state = next_state
         total_reward += reward
@@ -500,24 +500,39 @@ def generate_comparison_charts(summary: Dict[str, Dict[str, Dict]], output_path:
     """Renders a comprehensive 4-panel comparison figure with error bars and controlled abort tracking."""
     buckets = list(summary.keys())
     x = np.arange(len(buckets))
-    width = 0.26
 
     fig, axs = plt.subplots(2, 2, figsize=(16, 11))
     fig.suptitle(
         "EcoPilot — Multi-Agent Benchmark Evaluation on Real SRTM Topography\n"
-        "(Adaptive Q-Agent vs Static Baseline vs Rule-Based A* Planner under Identical Safety Envelope)",
+        "(Adaptive Q-Agent vs Adaptive + PBRS vs Static Baseline vs Rule-Based A* Planner under Identical Safety Envelope)",
         fontsize=13, fontweight="bold"
     )
 
-    models = ["AdaptiveAgent", "StaticBaseline", "RuleBasedPlanner"]
-    labels = ["Adaptive Q-Agent", "Static Baseline", "Rule-Based A* Planner"]
-    colors = ["#2b8cbe", "#e34a33", "#31a354"]
+    model_styles = {
+        "AdaptiveAgent": {"label": "Adaptive Q-Agent", "color": "#2b8cbe"},
+        "AdaptiveAgent_PBRS": {"label": "Adaptive + PBRS (A*-Guided)", "color": "#8856a7"},
+        "StaticBaseline": {"label": "Static Baseline", "color": "#e34a33"},
+        "RuleBasedPlanner": {"label": "Rule-Based A* Planner", "color": "#31a354"},
+    }
+
+    available_models = list(summary[buckets[0]].keys())
+    models = [m for m in model_styles if m in available_models]
+    for m in available_models:
+        if m not in models:
+            models.append(m)
+            model_styles[m] = {"label": m, "color": "#756bb1"}
+
+    labels = [model_styles[m]["label"] for m in models]
+    colors = [model_styles[m]["color"] for m in models]
+    k = len(models)
+    width = 0.80 / max(k, 1)
+    offsets = [(i - (k - 1) / 2.0) * width for i in range(k)]
 
     # ── Panel 1: Mission Success Rate (%) with 95% CI ──────────────────────────
-    for i, (m, lbl, c) in enumerate(zip(models, labels, colors)):
+    for i, (m, lbl, c, off) in enumerate(zip(models, labels, colors, offsets)):
         y = [summary[b][m]["success_rate_pct"] for b in buckets]
         y_err = [summary[b][m]["ci_95_pct"] for b in buckets]
-        axs[0, 0].bar(x + (i - 1) * width, y, width, yerr=y_err, capsize=4, label=lbl, color=c, alpha=0.9)
+        axs[0, 0].bar(x + off, y, width, yerr=y_err, capsize=4, label=lbl, color=c, alpha=0.9)
 
     axs[0, 0].axhline(80.0, color="gray", linestyle=":", label="Calm Target (≥80%)")
     axs[0, 0].axhline(65.0, color="lightgray", linestyle="--", label="Mod Target (≥65%)")
@@ -530,13 +545,12 @@ def generate_comparison_charts(summary: Dict[str, Dict[str, Dict]], output_path:
     axs[0, 0].legend(loc="upper right", fontsize=8)
 
     # ── Panel 2: Safe Aborts (RTH & Controlled Landings) ────────────────────────
-    for i, (m, lbl, c) in enumerate(zip(models, labels, colors)):
+    for i, (m, lbl, c, off) in enumerate(zip(models, labels, colors, offsets)):
         y_rth = [summary[b][m]["safe_rth_rate_pct"] for b in buckets]
         y_land = [summary[b][m]["controlled_landing_rate_pct"] for b in buckets]
-        axs[0, 1].bar(x + (i - 1) * width, y_rth, width, label=f"{lbl} (Safe RTH)", color=c, alpha=0.9)
-        # Stack controlled landings on top if any
+        axs[0, 1].bar(x + off, y_rth, width, label=f"{lbl} (Safe RTH)", color=c, alpha=0.9)
         if any(v > 0 for v in y_land):
-            axs[0, 1].bar(x + (i - 1) * width, y_land, width, bottom=y_rth, label=f"{lbl} (Land)", color="#756bb1", alpha=0.8)
+            axs[0, 1].bar(x + off, y_land, width, bottom=y_rth, label=f"{lbl} (Land)", color="#756bb1", alpha=0.8)
 
     axs[0, 1].set_ylabel("Safe Abort Rate (%)")
     axs[0, 1].set_title("(2) Safe Aborts (Return-to-Home & Controlled Landings)")
@@ -547,9 +561,9 @@ def generate_comparison_charts(summary: Dict[str, Dict[str, Dict]], output_path:
     axs[0, 1].legend(loc="upper left", fontsize=8)
 
     # ── Panel 3: Path Length (m) and Energy (Wh) ──────────────────────────────
-    for i, (m, lbl, c) in enumerate(zip(models, labels, colors)):
+    for i, (m, lbl, c, off) in enumerate(zip(models, labels, colors, offsets)):
         y_energy = [summary[b][m]["mean_energy_wh"] for b in buckets]
-        axs[1, 0].bar(x + (i - 1) * width, y_energy, width, label=lbl, color=c, alpha=0.9)
+        axs[1, 0].bar(x + off, y_energy, width, label=lbl, color=c, alpha=0.9)
 
     axs[1, 0].set_ylabel("Mean Battery Energy Consumed (W·h)")
     axs[1, 0].set_title("(3) Flight Energy Consumption (4S 75 Wh Pack)")
@@ -559,15 +573,15 @@ def generate_comparison_charts(summary: Dict[str, Dict[str, Dict]], output_path:
     axs[1, 0].legend(loc="upper left", fontsize=8)
 
     # ── Panel 4: Failure & Interventions (Timeout, Crash, Battery) ─────────────
-    for i, (m, lbl, c) in enumerate(zip(models, labels, colors)):
+    for i, (m, lbl, c, off) in enumerate(zip(models, labels, colors, offsets)):
         y_timeout = [summary[b][m]["timeout_rate_pct"] for b in buckets]
-        axs[1, 1].bar(x + (i - 1) * width, y_timeout, width, label=f"{lbl} (Timeout)", color=c, alpha=0.9)
+        axs[1, 1].bar(x + off, y_timeout, width, label=f"{lbl} (Timeout)", color=c, alpha=0.9)
 
     axs[1, 1].set_ylabel("Timeout Rate (%)")
     axs[1, 1].set_title("(4) Mission Timeouts (Collisions & Depletions = 0.0%)")
     axs[1, 1].set_xticks(x)
     axs[1, 1].set_xticklabels(buckets)
-    axs[1, 1].set_ylim(0, 30)
+    axs[1, 1].set_ylim(0, 45)
     axs[1, 1].grid(axis="y", linestyle="--", alpha=0.5)
     axs[1, 1].legend(loc="upper left", fontsize=8)
 

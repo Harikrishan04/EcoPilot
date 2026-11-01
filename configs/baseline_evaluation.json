@@ -55,6 +55,11 @@
       "policy_path": "data/q_table_adaptive.json"
     },
     {
+      "name": "AdaptiveAgent_PBRS",
+      "type": "rl_adaptive",
+      "policy_path": "data/q_table_adaptive_pbrs.json"
+    },
+    {
       "name": "StaticBaseline",
       "type": "rl_static",
       "policy_path": "data/q_table_baseline.json"

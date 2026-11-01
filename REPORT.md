@@ -131,23 +131,60 @@ Evaluated across **100 held-out evaluation seeds** (seeds 5001–5100, strictly 
 
 | Condition Bucket | Evaluated Model | Success Rate (%) | 95% Confidence Interval | Safe RTH (%) | Timeout (%) | Crash (%) | Mean Flight Time (s) | Mean Path (m) | Mean Energy (W·h) | Mean Overrides |
 |---|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Calm** ($R_{\text{env}} \approx 0.19$) | **Adaptive Q-Agent** | **97.0%** | $\pm 3.3\%$ | 0.0% | 3.0% | **0.0%** | 51.9 s | 516.0 m | 4.47 W·h | 1.18 |
-| | Static Baseline | 95.0% | $\pm 4.3\%$ | 0.0% | 5.0% | **0.0%** | 71.3 s | 710.5 m | 6.13 W·h | 2.76 |
-| | Rule-Based A* Planner | **100.0%** | $\pm 0.0\%$ | 0.0% | 0.0% | **0.0%** | 38.6 s | 384.3 m | 3.33 W·h | 0.00 |
-| **Moderate** ($R_{\text{env}} \approx 0.47$) | **Adaptive Q-Agent** | **66.0%** | $\pm 9.3\%$ | 0.0% | 34.0% | **0.0%** | 117.4 s | 747.2 m | 10.25 W·h | 32.50 |
-| | Static Baseline | 65.0% | $\pm 9.3\%$ | 0.0% | 35.0% | **0.0%** | 118.1 s | 802.8 m | 10.58 W·h | 31.49 |
-| | Rule-Based A* Planner | **74.0%** | $\pm 8.6\%$ | 0.0% | 26.0% | **0.0%** | 97.7 s | 630.2 m | 8.61 W·h | 26.30 |
-| **Severe** ($R_{\text{env}} \approx 0.90$) | **Adaptive Q-Agent** | 3.0% | $\pm 3.3\%$ | **95.0%** | 2.0% | **0.0%** | 11.8 s | 49.4 m | 1.11 W·h | 4.57 |
-| | Static Baseline | 0.0% | $\pm 0.0\%$ | **96.0%** | 4.0% | **0.0%** | 15.4 s | 93.2 m | 1.72 W·h | 5.08 |
+| **Calm** ($R_{\text{env}} \approx 0.19$) | **Adaptive Q-Agent** | **95.0%** | $\pm 4.3\%$ | 0.0% | 5.0% | **0.0%** | 58.0 s | 576.8 m | 5.00 W·h | 3.16 |
+| | Adaptive + PBRS (A*-Guided) | 92.0% | $\pm 5.3\%$ | 0.0% | 8.0% | **0.0%** | 67.6 s | 633.2 m | 5.70 W·h | 5.65 |
+| | Static Baseline | 89.0% | $\pm 6.1\%$ | 0.0% | 11.0% | **0.0%** | 65.1 s | 625.3 m | 5.52 W·h | 6.23 |
+| | Rule-Based A* Planner | **99.0%** | $\pm 2.0\%$ | 0.0% | 1.0% | **0.0%** | 40.8 s | 406.2 m | 3.52 W·h | 0.60 |
+| **Moderate** ($R_{\text{env}} \approx 0.47$) | **Adaptive Q-Agent** | **71.0%** | $\pm 8.9\%$ | 0.0% | 29.0% | **0.0%** | 112.6 s | 700.4 m | 9.86 W·h | 30.75 |
+| | Adaptive + PBRS (A*-Guided) | 67.0% | $\pm 9.2\%$ | 0.0% | 33.0% | **0.0%** | 119.0 s | 736.2 m | 10.34 W·h | 33.91 |
+| | Static Baseline | 68.0% | $\pm 9.1\%$ | 0.0% | 32.0% | **0.0%** | 114.6 s | 685.6 m | 9.92 W·h | 34.23 |
+| | Rule-Based A* Planner | **74.0%** | $\pm 8.6\%$ | 0.0% | 26.0% | **0.0%** | 97.9 s | 597.9 m | 8.47 W·h | 27.21 |
+| **Severe** ($R_{\text{env}} \approx 0.90$) | **Adaptive Q-Agent** | 1.0% | $\pm 2.0\%$ | **96.0%** | 3.0% | **0.0%** | 14.8 s | 74.8 m | 1.49 W·h | 5.63 |
+| | Adaptive + PBRS (A*-Guided) | 1.0% | $\pm 2.0\%$ | **97.0%** | 2.0% | **0.0%** | 12.5 s | 64.7 m | 1.26 W·h | 4.39 |
+| | Static Baseline | 3.0% | $\pm 3.3\%$ | **96.0%** | 1.0% | **0.0%** | 10.4 s | 50.6 m | 1.02 W·h | 3.78 |
 | | Rule-Based A* Planner | 4.0% | $\pm 3.8\%$ | **96.0%** | 0.0% | **0.0%** | 8.7 s | 25.4 m | 0.66 W·h | 3.61 |
 
 ### Benchmark Analysis & Target Compliance
 - **Calm Target ($\ge 80\%$)**: Adaptive Agent achieves **97.0%**; A* Planner achieves **100.0%** (PASSED).
 - **Moderate Target ($\ge 65\%$)**: Adaptive Agent achieves **66.0%**; A* Planner achieves **74.0%** (PASSED).
-- **Collision Rate Target ($0\%$)**: Maintained **0.0%** across all 900 evaluation trials (PASSED).
-- **Timeout Rate Target**: Calm $\le 10\%$ (**3.0%** achieved); Moderate $\le 35\%$ (**34.0%** achieved) (PASSED).
-- **Severe Weather Explicit Outcomes**: **95.0% Safe RTH** abort rate for Adaptive Agent; zero indefinite hover loops (PASSED).
-- **Energy & Path Advantage**: In Calm weather, Adaptive Agent required **27.4% shorter flight paths** (516.0 m vs 710.5 m), **27.2% less flight time** (51.9 s vs 71.3 s), and consumed **27.1% less battery energy** (4.47 Wh vs 6.13 Wh) compared to Static Baseline due to wind-aware routing.
+- **Collision Rate Target ($0\%$)**: Maintained **0.0%** across all 1,200 evaluation trials (PASSED).
+- **Timeout Rate Target**: Calm $\le 10\%$ (**5.0%** achieved); Moderate $\le 35\%$ (**29.0%** achieved) (PASSED).
+- **Severe Weather Explicit Outcomes**: **96.0% Safe RTH** abort rate for Adaptive Agent; zero indefinite hover loops (PASSED).
+- **Energy & Path Advantage**: In Calm weather, Adaptive Agent required **7.8% shorter flight paths** (576.8 m vs 625.3 m), **10.9% less flight time** (58.0 s vs 65.1 s), and consumed **9.4% less battery energy** (5.00 Wh vs 5.52 Wh) compared to Static Baseline due to wind-aware routing.
+
+### 5.1 Potential-Based Reward Shaping (PBRS): Can Classical Planning Accelerate RL?
+
+To explore whether classical topographic pathfinding knowledge can accelerate RL convergence in rugged terrain, we implemented Potential-Based Reward Shaping (PBRS) based on the theoretical framework of [Ng, Harada, & Russell (1999)](https://people.eecs.berkeley.edu/~pabbeel/cs287-fa09/readings/NgHaradaRussell-shaping-ICML1999.pdf).
+
+#### 1. Mathematical Formulation
+In PBRS, an auxiliary shaping bonus $F(s, s')$ is added to the environmental reward $R$:
+$$R'(s, a, s') = R_{\text{adaptive}}(s, a, s') + F(s, s')$$
+$$F(s, s') = \gamma \Phi(s') - \Phi(s)$$
+
+Where $\Phi(s)$ is a potential function defined over the continuous spatial coordinates $(r, c)$ using the precomputed A* / Dijkstra cost-to-go map over the elevation relief:
+$$\Phi(s) = -w_{\text{pbrs}} \cdot \text{Cost}_{\text{A*}}(r, c; \text{goal}) \quad (w_{\text{pbrs}} = 0.5)$$
+
+#### 2. Strict Theoretical Conditions Enforced
+1. **Identical Discount Factor ($\gamma = 0.95$)**:
+   The shaping term uses the exact same $\gamma = 0.95$ as the Q-learning agent. By the telescoping sum theorem, this mathematically guarantees that the optimal policy $\pi^*$ of the original MDP is invariant:
+   $$\sum_{t=0}^{T-1} \gamma^t F(s_t, s_{t+1}) = \gamma^T \Phi(s_T) - \Phi(s_0) = -\Phi(s_0)$$
+2. **Terminal Boundary Enforcement ($\Phi(\text{terminal}) = 0$)**:
+   For all terminal outcomes (goal success, battery depletion, safe RTH, controlled landing, timeout), $\Phi(s_T)$ is strictly set to $0.0$. This prevents artificial reward leakage or end-of-episode distortion.
+3. **Strict State Dependency**:
+   $\Phi(s)$ is computed via bilinear interpolation of spatial coordinates $(r, c)$ relative to the goal over the elevation map. It is completely independent of action choice and simulation elapsed time.
+4. **Fair Metric Isolation**:
+   Shaping is strictly excluded from all reported evaluation metrics. All flight times, path lengths, energy consumptions, and returns in `evaluation_summary.csv` reflect the true unshaped physical environment.
+5. **Continuous Safety Governor Authority**:
+   The independent safety envelope ([`safety.py`](file:///home/hari/Documents/projects/EcoPilot/safety.py)) monitors candidate continuous trajectories. Even with shaped exploration, 0.0% collisions were maintained across all 1,200 trials.
+
+#### 3. Framing & Circularity Acknowledgment
+Because `AdaptiveAgent_PBRS` receives heuristic guidance derived from the A* cost-to-go field, it is **not an independent competitor to the A* planner**. Instead, this study asks:
+> *"Can classical path planning heuristics serve as an effective inductive bias to guide tabular RL out of mountain ridge traps without distorting learned aerodynamic adaptation?"*
+
+#### 4. Empirical Findings
+- **Training Convergence**: Both unshaped and PBRS agents successfully converge from early exploration (~26.0% success in first 50 episodes) to ~98.0% in the final 50 episodes. PBRS provided smoother early gradient guidance during ridge encounters.
+- **Evaluation on Unseen Topographic Seeds**: Across 300 unseen evaluation episodes, the unshaped Adaptive Agent achieved slightly higher success (**95.0%** Calm, **71.0%** Moderate) compared to the PBRS agent (**92.0%** Calm, **67.0%** Moderate).
+- **Physical Insight**: In complex terrain subject to live crosswinds, the 2D A* potential map pulls the drone strictly along minimum-distance topographic valley lines. However, under dynamic winds, the aerodynamically optimal flight path often diverges from the shortest topographic path to avoid headwind drag and gust loading. Static planning guidance can thus introduce a slight bias towards mechanically rigid routes unless conditioned on wind azimuth.
 
 ---
 

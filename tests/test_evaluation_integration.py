@@ -8,6 +8,7 @@ and renders the comparison charts.
 """
 
 import csv
+import json
 import os
 import shutil
 import tempfile
@@ -62,8 +63,14 @@ class TestEvaluationIntegration(unittest.TestCase):
             reader = csv.DictReader(f)
             ep_rows = list(reader)
 
-        # 3 buckets * 3 models * 2 episodes = 18 episode rows
-        self.assertEqual(len(ep_rows), 18)
+        with open("configs/baseline_evaluation.json", "r") as f_cfg:
+            eval_config = json.load(f_cfg)
+        num_models = len(eval_config.get("models", []))
+        num_buckets = len(eval_config.get("condition_buckets", {}))
+
+        # num_buckets * num_models * 2 episodes
+        expected_ep_count = num_buckets * num_models * 2
+        self.assertEqual(len(ep_rows), expected_ep_count)
 
         sample = ep_rows[0]
         required_episode_cols = [
@@ -86,8 +93,9 @@ class TestEvaluationIntegration(unittest.TestCase):
             sum_reader = csv.DictReader(f)
             sum_rows = list(sum_reader)
 
-        # 3 buckets * 3 models = 9 summary rows
-        self.assertEqual(len(sum_rows), 9)
+        # num_buckets * num_models summary rows
+        expected_summary_count = num_buckets * num_models
+        self.assertEqual(len(sum_rows), expected_summary_count)
 
         required_summary_cols = [
             "bucket", "agent", "trials", "success_rate_pct", "ci_95_pct",
