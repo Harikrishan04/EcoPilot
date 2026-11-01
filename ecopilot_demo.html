@@ -234,98 +234,364 @@
     }
     .status-nominal { background: #14532d; color: #86efac; border: 1px solid #22c55e44; }
     .status-override { background: #7f1d1d; color: #fca5a5; border: 1px solid #ef444444; }
+
+    /* Mode Navigation Tabs */
+    .mode-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+    }
+    .tab-btn {
+      padding: 8px 16px;
+      background: #1e293b;
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    .tab-btn:hover {
+      background: #334155;
+      color: var(--text-main);
+    }
+    .tab-btn.active {
+      background: #0284c7;
+      color: #ffffff;
+      border-color: #38bdf8;
+    }
+
+    /* Mission Status Bar */
+    header {
+      flex-direction: column;
+      gap: 12px;
+      align-items: stretch;
+    }
+    .header-main {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+    }
+    .mission-status-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      background: #131d31;
+      border: 1px solid #1e293b;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+    }
+    .status-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .chip-label {
+      color: var(--text-dim);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .chip-val {
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+    }
+    .status-ready { background: #1e293b; color: #94a3b8; border: 1px solid #334155; }
+    .status-flying { background: #0369a1; color: #bae6fd; border: 1px solid #38bdf844; }
+    .status-hold { background: #854d0e; color: #fef08a; border: 1px solid #eab30844; }
+    .status-rth { background: #7c2d12; color: #fed7aa; border: 1px solid #f9731644; }
+    .status-land { background: #3730a3; color: #c7d2fe; border: 1px solid #6366f144; }
+    .status-success { background: #14532d; color: #86efac; border: 1px solid #22c55e44; }
+    .status-warn { background: #78350f; color: #fde68a; border: 1px solid #d9770644; }
+
+    /* Battery & Telemetry Meter */
+    .battery-meter {
+      height: 8px;
+      border-radius: 4px;
+      background: #334155;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+    .battery-bar {
+      height: 100%;
+      width: 100%;
+      background: var(--accent-green);
+      transition: width 0.2s, background 0.2s;
+    }
+
+    /* Altitude Mini Profile */
+    .altitude-container {
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 6px;
+      margin-top: 8px;
+    }
+
+    /* Replay Controls */
+    .replay-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      width: 100%;
+      margin-top: 6px;
+    }
+    .scrubber-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .scrubber-row input[type=range] {
+      flex: 1;
+    }
+
+    /* Safety Event Card */
+    .safety-event-card {
+      background: #181c2b;
+      border: 1px solid #451a1a;
+      border-radius: 6px;
+      padding: 8px 10px;
+      margin-top: 4px;
+    }
+    .safety-event-card summary {
+      cursor: pointer;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #fca5a5;
+    }
+
+    /* Evaluation Benchmark Section */
+    .eval-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      display: none;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .eval-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+      margin-top: 10px;
+    }
+    .eval-table th {
+      background: #0f172a;
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 2px solid var(--border);
+      color: var(--text-dim);
+      font-weight: 600;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .eval-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #33415555;
+    }
+    .eval-table tr:hover {
+      background: #1e293b88;
+    }
+    .row-adaptive {
+      background: #0284c711;
+    }
+    .badge-rate {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 700;
+      font-size: 0.78rem;
+    }
+    .rate-good { background: #14532d; color: #86efac; }
+    .rate-low { background: #334155; color: #94a3b8; }
+    .rate-rth { background: #7c2d12; color: #fed7aa; }
+    .rate-zero-crash { background: #14532d44; color: #86efac; border: 1px solid #22c55e44; }
+
+    /* Model Specs */
+    .specs-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 900px) {
+      .specs-grid { grid-template-columns: 1fr; }
+    }
+    .spec-card {
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px;
+    }
+    .spec-card h3 {
+      font-size: 0.95rem;
+      color: var(--accent-blue);
+      margin-bottom: 8px;
+    }
+    .formula-box {
+      background: #1e293b;
+      padding: 8px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 0.8rem;
+      color: #e2e8f0;
+      margin: 6px 0;
+    }
   </style>
+  <script src="demo_ui.js"></script>
 </head>
 <body>
 
   <header>
-    <div class="title-group">
-      <h1>EcoPilot — Autonomous Drone Simulation</h1>
-      <p>Tabular Q-Learning Navigation with Live Atmospheric Physics · Mantripukhri (IIIT Manipur Campus)</p>
+    <div class="header-main">
+      <div class="title-group">
+        <h1>EcoPilot — Autonomous Drone Avionics & RL Simulation</h1>
+        <p>Continuous 3D Kinematics & Tabular Q-Learning Navigation · Mantripukhri (IIIT Manipur Campus, 780–828m ASL)</p>
+      </div>
+      <div class="badge-bar">
+        <span class="badge">SRTM GL1 (30m) Real Terrain</span>
+        <span class="badge">Phase 2 3D Dynamics</span>
+        <span class="badge">Composite R_env Risk</span>
+        <span class="badge">Safe Return-to-Home</span>
+      </div>
     </div>
-    <div class="badge-bar">
-      <span class="badge">SRTM GL1 (30m) Real Terrain</span>
-      <span class="badge">Discretized R_env Risk</span>
-      <span class="badge">Independent Safety Envelope</span>
+
+    <!-- Persistent Mission Status Bar -->
+    <div class="mission-status-bar" role="region" aria-label="Mission Status" aria-live="polite">
+      <div class="status-chip">
+        <span class="chip-label">Mission:</span>
+        <span id="missionState" class="chip-val status-ready">READY</span>
+      </div>
+      <div class="status-chip">
+        <span class="chip-label">Clock:</span>
+        <span id="missionClock" class="chip-val font-mono" style="background:#0f172a; color:#f8fafc;">T+00.0s</span>
+      </div>
+      <div class="status-chip">
+        <span class="chip-label">Mode:</span>
+        <span id="activeModeLabel" class="chip-val" style="background:#0284c722; color:var(--accent-blue); border:1px solid #0284c744;">LIVE SIMULATOR</span>
+      </div>
     </div>
   </header>
 
+  <!-- Navigation Mode Tabs -->
+  <nav class="mode-tabs" role="tablist" aria-label="Simulation Views">
+    <button id="tabBtnLive" class="tab-btn active" role="tab" aria-selected="true" onclick="switchTab('live')">
+      🎮 Live Simulation
+    </button>
+    <button id="tabBtnReplay" class="tab-btn" role="tab" aria-selected="false" onclick="switchTab('replay')">
+      📼 Flight Log Replay
+    </button>
+    <button id="tabBtnEval" class="tab-btn" role="tab" aria-selected="false" onclick="switchTab('eval')">
+      📊 Multi-Agent Benchmark Evaluation
+    </button>
+    <button id="tabBtnSpecs" class="tab-btn" role="tab" aria-selected="false" onclick="switchTab('specs')">
+      📐 Flight Dynamics & Model Specs
+    </button>
+  </nav>
+
   <div class="layout-grid">
 
-    <!-- LEFT PANEL: Atmospheric Physics & Sliders -->
-    <div class="card">
+    <!-- LEFT PANEL: Atmospheric Physics & Sliders or Replay Selector -->
+    <div class="card" id="leftCard">
       <h2>
         <span>Atmospheric Controls</span>
         <span id="safetyBadge" class="status-badge status-nominal">ENVELOPE: NOMINAL</span>
       </h2>
 
-      <!-- Presets -->
-      <div class="btn-row">
-        <button onclick="setWeatherPreset('calm')">Calm Morning</button>
-        <button onclick="setWeatherPreset('moderate')">Mod. Breeze</button>
-        <button onclick="setWeatherPreset('severe')">Severe Squall</button>
-      </div>
-
-      <!-- Sliders -->
-      <div class="slider-group">
-        <div class="slider-label"><span>Wind Speed (|W|)</span><span class="val" id="valWind">3.0 m/s</span></div>
-        <input type="range" id="sliderWind" min="0" max="15" step="0.5" value="3.0" oninput="updatePhysics()">
-      </div>
-
-      <div class="slider-group">
-        <div class="slider-label"><span>Wind Azimuth (θ_w)</span><span class="val" id="valDir">140° (SE)</span></div>
-        <input type="range" id="sliderDir" min="0" max="360" step="10" value="140" oninput="updatePhysics()">
-      </div>
-
-      <div class="slider-group">
-        <div class="slider-label"><span>Relative Humidity (RH)</span><span class="val" id="valRH">55%</span></div>
-        <input type="range" id="sliderRH" min="20" max="100" step="5" value="55" oninput="updatePhysics()">
-      </div>
-
-      <div class="slider-group">
-        <div class="slider-label"><span>Barometric Trend (dP/dt)</span><span class="val" id="valDP">0.0 hPa/h</span></div>
-        <input type="range" id="sliderDP" min="-3" max="3" step="0.2" value="0.0" oninput="updatePhysics()">
-      </div>
-
-      <!-- Live Physics Metrics -->
-      <div class="metric-grid">
-        <div class="metric-box">
-          <div class="label">Air Density (ρ)</div>
-          <div class="value" id="valRho">1.06 kg/m³</div>
+      <!-- Live Simulation Atmospheric Controls -->
+      <div id="liveAtmosphericControls">
+        <!-- Presets -->
+        <div class="btn-row">
+          <button onclick="setWeatherPreset('calm')">Calm Morning</button>
+          <button onclick="setWeatherPreset('moderate')">Mod. Breeze</button>
+          <button onclick="setWeatherPreset('severe')">Severe Squall</button>
         </div>
-        <div class="metric-box">
-          <div class="label">Thrust Factor (k_th)</div>
-          <div class="value" id="valKThrust">1.15×</div>
+
+        <!-- Sliders -->
+        <div class="slider-group">
+          <div class="slider-label"><span>Wind Speed (|W|)</span><span class="val" id="valWind">3.0 m/s</span></div>
+          <input type="range" id="sliderWind" min="0" max="15" step="0.5" value="3.0" oninput="updatePhysics()">
         </div>
-        <div class="metric-box">
-          <div class="label">Dyn Pressure (q)</div>
-          <div class="value" id="valQ">48.2 Pa</div>
+
+        <div class="slider-group">
+          <div class="slider-label"><span>Wind Azimuth (θ_w)</span><span class="val" id="valDir">140° (SE)</span></div>
+          <input type="range" id="sliderDir" min="0" max="360" step="10" value="140" oninput="updatePhysics()">
         </div>
-        <div class="metric-box">
-          <div class="label">Adaptive Penalty (λ)</div>
-          <div class="value" id="valLambda">1.25×</div>
+
+        <div class="slider-group">
+          <div class="slider-label"><span>Relative Humidity (RH)</span><span class="val" id="valRH">55%</span></div>
+          <input type="range" id="sliderRH" min="20" max="100" step="5" value="55" oninput="updatePhysics()">
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-label"><span>Barometric Trend (dP/dt)</span><span class="val" id="valDP">0.0 hPa/h</span></div>
+          <input type="range" id="sliderDP" min="-3" max="3" step="0.2" value="0.0" oninput="updatePhysics()">
+        </div>
+
+        <!-- Live Physics Metrics -->
+        <div class="metric-grid">
+          <div class="metric-box">
+            <div class="label">Air Density (ρ)</div>
+            <div class="value" id="valRho">1.06 kg/m³</div>
+          </div>
+          <div class="metric-box">
+            <div class="label">Thrust Factor (k_th)</div>
+            <div class="value" id="valKThrust">1.15×</div>
+          </div>
+          <div class="metric-box">
+            <div class="label">Dyn Pressure (q)</div>
+            <div class="value" id="valQ">48.2 Pa</div>
+          </div>
+          <div class="metric-box">
+            <div class="label">Adaptive Penalty (λ)</div>
+            <div class="value" id="valLambda">1.25×</div>
+          </div>
+        </div>
+
+        <!-- Environmental Risk Score Gauge -->
+        <div class="metric-box" style="margin-top: 4px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span class="label">Composite Risk (R_env)</span>
+            <span class="value" id="valREnv" style="font-size:1.1rem; color:var(--accent-green);">0.18</span>
+          </div>
+          <div class="risk-meter">
+            <div id="riskBar" class="risk-bar" style="width: 18%;"></div>
+          </div>
+        </div>
+
+        <!-- Live Ground Reference Info -->
+        <div style="font-size: 0.72rem; color: var(--text-dim); line-height: 1.3; border-top: 1px solid var(--border); padding-top: 8px;">
+          📍 <strong>Local Reference</strong>: Mantripukhri Valley Floor (~780m ASL). Dry air is heavier than humid air (T_v correction active). Hard safety override triggers if R_env > 0.85 or q > 120 Pa.
         </div>
       </div>
 
-      <!-- Environmental Risk Score Gauge -->
-      <div class="metric-box" style="margin-top: 4px;">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <span class="label">Composite Risk (R_env)</span>
-          <span class="value" id="valREnv" style="font-size:1.1rem; color:var(--accent-green);">0.18</span>
+      <!-- Replay Scenario Controls -->
+      <div id="replayScenarioControls" style="display:none;">
+        <div style="font-size:0.8rem; font-weight:600; margin-bottom:6px;">Select Recorded Flight Log</div>
+        <div class="btn-row" style="margin-bottom:10px;">
+          <button id="btnLog_calm" class="primary" onclick="loadFlightLog('calm')">Calm (Seed 5001)</button>
+          <button id="btnLog_moderate" onclick="loadFlightLog('moderate')">Moderate (Seed 5002)</button>
+          <button id="btnLog_emergency" onclick="loadFlightLog('emergency')">Severe Emergency</button>
         </div>
-        <div class="risk-meter">
-          <div id="riskBar" class="risk-bar" style="width: 18%;"></div>
-        </div>
-      </div>
-
-      <!-- Live Ground Reference Info -->
-      <div style="font-size: 0.72rem; color: var(--text-dim); line-height: 1.3; border-top: 1px solid var(--border); padding-top: 8px;">
-        📍 <strong>Local Reference</strong>: Mantripukhri Valley Floor (~780m ASL). Dry air is heavier than humid air (T_v correction active). Hard safety override triggers if R_env > 0.85 or q > 120 Pa.
+        <div id="replayMetaBox" class="metric-box" style="margin-top:6px; padding:10px;"></div>
       </div>
     </div>
 
     <!-- CENTER PANEL: Real Terrain Simulation Canvas -->
-    <div class="card" style="padding: 12px;">
+    <div class="card" id="canvasCard" style="padding: 12px;">
       <h2>
         <span>Real Terrain Simulation (24×24 Grid)</span>
         <span style="font-size:0.75rem; color:var(--text-dim);" id="stepCounter">Step: 0 / 100</span>
@@ -341,19 +607,48 @@
         </div>
       </div>
 
-      <div class="btn-row" style="margin-top: 4px;">
+      <!-- SVG Mini Altitude Profile Chart -->
+      <div class="altitude-container">
+        <svg id="altitudeSvg" width="576" height="90" viewBox="0 0 576 90" style="width:100%; height:auto; display:block;"></svg>
+      </div>
+
+      <!-- Live Mission Buttons -->
+      <div id="liveBtnRow" class="btn-row" style="margin-top: 6px;">
         <button id="btnPlay" class="primary" onclick="toggleFlight()">▶ Start Mission</button>
         <button onclick="resetMission(true)">🎲 New Random Route</button>
         <button onclick="resetMission(false)">⏹ Reset Current</button>
       </div>
+
+      <!-- Replay Controls Toolbar -->
+      <div id="replayBtnRow" class="replay-controls" style="display:none;">
+        <div class="scrubber-row">
+          <input type="range" id="replayScrubber" min="0" max="1" value="0" oninput="applyReplayStep(parseInt(this.value))">
+          <span id="replayStepLabel" style="font-size:0.75rem; color:var(--text-dim); min-width:120px; text-align:right;">Step 0 (0.0s)</span>
+        </div>
+        <div class="btn-row">
+          <button onclick="applyReplayStep(0)">⏮ Start</button>
+          <button id="btnReplayPrev" onclick="stepReplay(-1)">◀ Step</button>
+          <button id="btnReplayPlay" class="primary" onclick="toggleReplayPlay()">▶ Play</button>
+          <button id="btnReplayNext" onclick="stepReplay(1)">Step ▶</button>
+          <button onclick="applyReplayStep(FLIGHT_LOGS[activeLogKey].telemetry_history.length - 1)">⏭ End</button>
+        </div>
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-top:4px;">
+          <span style="font-size:0.75rem; color:var(--text-dim);">Replay Speed:</span>
+          <div style="display:flex; gap:6px;">
+            <button id="btnSpeed_1" class="primary" style="flex:none; padding:4px 10px; font-size:0.75rem;" onclick="setReplaySpeed(1)">1×</button>
+            <button id="btnSpeed_2" style="flex:none; padding:4px 10px; font-size:0.75rem;" onclick="setReplaySpeed(2)">2×</button>
+            <button id="btnSpeed_5" style="flex:none; padding:4px 10px; font-size:0.75rem;" onclick="setReplaySpeed(5)">5×</button>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- RIGHT PANEL: Agent Settings, Policy Playback & Log -->
-    <div class="card">
-      <h2>Policy & Safety Controls</h2>
+    <!-- RIGHT PANEL: Agent Settings, Policy Playback & Telemetry -->
+    <div class="card" id="rightTelemetryCard">
+      <h2>Policy & Avionics Telemetry</h2>
 
       <div class="slider-group">
-        <label class="slider-label"><span>Active Agent</span></label>
+        <label class="slider-label" for="agentSelect"><span>Active Agent</span></label>
         <select id="agentSelect" style="background:#334155; color:white; padding:6px; border-radius:4px; border:1px solid #475569;" onchange="updateAgentSelection()">
           <option value="adaptive">Adaptive Q-Agent (R_env-Aware Policy)</option>
           <option value="baseline">Static Baseline Agent (Unconditioned)</option>
@@ -361,8 +656,8 @@
       </div>
 
       <div style="display:flex; justify-content:space-between; align-items:center; background:#0f172a; padding:8px 12px; border-radius:6px; border:1px solid var(--border);">
-        <span style="font-size:0.8rem; font-weight:600;">Hard Safety Envelope</span>
-        <input type="checkbox" id="checkSafety" checked style="width:18px; height:18px; accent-color:var(--accent-blue);" onchange="updatePhysics()">
+        <label for="checkSafety" style="font-size:0.8rem; font-weight:600; cursor:pointer;">Hard Safety Envelope</label>
+        <input type="checkbox" id="checkSafety" checked style="width:18px; height:18px; accent-color:var(--accent-blue); cursor:pointer;" onchange="updatePhysics()">
       </div>
 
       <!-- Telemetry Box -->
@@ -383,21 +678,157 @@
           <div class="label">Safety Overrides</div>
           <div class="value" id="valOverrides" style="font-size:0.95rem; color:var(--accent-yellow);">0</div>
         </div>
+        <div class="metric-box">
+          <div class="label">Altitude (ASL)</div>
+          <div class="value" id="valAltitude" style="font-size:0.95rem; color:var(--accent-blue);">810.0 m ASL</div>
+        </div>
+        <div class="metric-box">
+          <div class="label">Clearance (AGL)</div>
+          <div class="value" id="valClearance" style="font-size:0.95rem;">29.2 m [SAFE]</div>
+        </div>
+        <div class="metric-box">
+          <div class="label">Airspeed</div>
+          <div class="value" id="valAirspeed" style="font-size:0.95rem;">8.0 m/s</div>
+        </div>
+        <div class="metric-box">
+          <div class="label">Ground Speed</div>
+          <div class="value" id="valGroundSpeed" style="font-size:0.95rem;">8.0 m/s</div>
+        </div>
+        <div class="metric-box">
+          <div class="label">Instant Power</div>
+          <div class="value" id="valPower" style="font-size:0.95rem;">245 W</div>
+        </div>
+        <div class="metric-box">
+          <div class="label">Energy Consumed</div>
+          <div class="value" id="valEnergy" style="font-size:0.95rem;">0.00 Wh</div>
+        </div>
       </div>
+
+      <!-- Battery SoC Meter -->
+      <div class="metric-box">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span class="label">Battery State of Charge</span>
+          <span class="value" id="valBattery" style="font-size:0.95rem; color:var(--accent-green);">100.0%</span>
+        </div>
+        <div class="battery-meter">
+          <div id="batteryBar" class="battery-bar" style="width: 100%;"></div>
+        </div>
+      </div>
+
+      <!-- Safety Event Diagnostics Card -->
+      <details id="safetyEventCard" class="safety-event-card" open>
+        <summary>Safety Override Diagnostics</summary>
+        <div id="safetyEventContent" style="padding-top:4px; font-size:0.75rem; color:var(--text-dim);">
+          No active safety interventions (Nominal envelope).
+        </div>
+      </details>
 
       <!-- Live Flight Event Log -->
       <div style="font-size:0.8rem; font-weight:600; margin-top:2px;">Mission Event Log</div>
       <div id="logBox" class="log-box"></div>
 
-      <!-- Phase 5 Evaluation Benchmark Reference -->
+      <!-- Phase 2 Evaluation Benchmark Reference -->
       <div style="border-top: 1px solid var(--border); padding-top: 8px;">
-        <div style="font-size:0.75rem; color:var(--text-dim); margin-bottom:4px;">Benchmark Crash Rate in Severe Weather:</div>
-        <div style="display:flex; justify-content:space-between; font-size:0.8rem;">
-          <span style="color:var(--accent-blue); font-weight:600;">Adaptive + Safety: 0.0%</span>
-          <span style="color:var(--accent-red); font-weight:600;">Static Baseline: 87.0%</span>
+        <div style="font-size:0.75rem; color:var(--text-dim); margin-bottom:4px;">Empirical Benchmark Summary (900 Trials):</div>
+        <div style="display:flex; justify-content:space-between; font-size:0.78rem; margin-bottom:2px;">
+          <span style="color:var(--accent-blue); font-weight:600;">Severe Crash: 0.0%</span>
+          <span style="color:var(--accent-yellow); font-weight:600;">Severe Safe-RTH: 95.0%</span>
         </div>
+        <div style="display:flex; justify-content:space-between; font-size:0.78rem; margin-bottom:6px;">
+          <span style="color:var(--text-main);">Calm Success: Adaptive 97.0%</span>
+          <span style="color:var(--text-dim);">Baseline: 95.0%</span>
+        </div>
+        <button onclick="switchTab('eval')" style="width:100%; padding:6px; background:#1e293b; border:1px solid #38bdf844; color:var(--accent-blue); border-radius:4px; font-size:0.75rem; font-weight:600;">
+          📊 View Complete Benchmark Evaluation
+        </button>
       </div>
     </div>
+
+  </div>
+
+  <!-- FULL-WIDTH TAB SECTIONS -->
+
+  <!-- Multi-Agent Benchmark Evaluation Section -->
+  <section id="sectionEval" class="eval-section" role="tabpanel" aria-labelledby="tabBtnEval">
+    <h2>Multi-Agent Empirical Benchmark Evaluation (Mantripukhri SRTM GL1)</h2>
+    <p style="font-size:0.85rem; color:var(--text-dim); line-height:1.5;">
+      Results across 900 seeded Monte Carlo trials (100 per agent and weather bucket) with the identical Phase 2 3D kinematics and hard safety envelope applied to all policies.
+    </p>
+
+    <div id="benchmarkTableContainer" style="overflow-x:auto;"></div>
+
+    <div class="metric-box" style="margin-top:10px; padding:14px; background:#131d31; border:1px solid #1e293b;">
+      <h3 style="font-size:0.95rem; color:var(--accent-blue); margin-bottom:6px;">Key Empirical Findings:</h3>
+      <ul style="font-size:0.82rem; color:var(--text-dim); line-height:1.6; margin-left:18px;">
+        <li><strong style="color:var(--text-main);">Zero Crashes Across All 900 Trials:</strong> The independent Phase 2 safety envelope successfully eliminated severe crashes for all agents (0.0% crash rate).</li>
+        <li><strong style="color:var(--text-main);">Adaptive Policy Navigational Efficiency:</strong> In Calm conditions, AdaptiveAgent achieved 97.0% mission success while consuming 27% less energy (4.47 Wh vs 6.13 Wh for StaticBaseline) and 27% fewer steps (25.9 vs 35.7).</li>
+        <li><strong style="color:var(--text-main);">Fail-Safe Return-to-Home in Severe Weather:</strong> In Severe Squall conditions (wind > 13.5 m/s, pressure drop -2.8 hPa/h), the safety envelope triggered Safe-RTH in 95.0% of Adaptive trials and 96.0% of Baseline trials, preserving drone integrity.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Flight Dynamics & Model Specs Section -->
+  <section id="sectionSpecs" class="eval-section" role="tabpanel" aria-labelledby="tabBtnSpecs">
+    <h2>Flight Dynamics & Environmental Physics Specifications</h2>
+    <p style="font-size:0.85rem; color:var(--text-dim); line-height:1.5;">
+      EcoPilot couples real SRTM GL1 digital elevation with physical atmospheric models:
+    </p>
+
+    <div class="specs-grid">
+      <div class="spec-card">
+        <h3>1. Atmospheric Density & Moisture</h3>
+        <p style="font-size:0.8rem; color:var(--text-dim); margin-bottom:6px;">
+          Humid air is less dense than dry air due to the molar mass of H₂O (18 g/mol) vs dry air (29 g/mol). Virtual temperature $T_v$ correction is applied:
+        </p>
+        <div class="formula-box">
+          T_v = T · (1 + 0.61 · w)<br>
+          ρ = P / (R_d · T_v)
+        </div>
+        <p style="font-size:0.78rem; color:var(--text-dim);">
+          Saturation vapor pressure $e_{sat}(T)$ is computed via the Magnus-Tetens formula.
+        </p>
+      </div>
+
+      <div class="spec-card">
+        <h3>2. Composite Environmental Risk (R_env)</h3>
+        <p style="font-size:0.8rem; color:var(--text-dim); margin-bottom:6px;">
+          Evaluates multi-factor atmospheric hazard from 0 (nominal) to 1 (unflyable squall):
+        </p>
+        <div class="formula-box">
+          R_env = 0.40·W_norm + 0.25·Gust_norm + 0.20·|dP/dt|_norm + 0.15·ρ_norm
+        </div>
+        <p style="font-size:0.78rem; color:var(--text-dim);">
+          Hard safety override triggers if $R_{env} > 0.85$ or dynamic pressure $q > 120$ Pa.
+        </p>
+      </div>
+
+      <div class="spec-card">
+        <h3>3. Phase 2 3D Energy Model</h3>
+        <p style="font-size:0.8rem; color:var(--text-dim); margin-bottom:6px;">
+          Accounts for hover lift power, parasite aerodynamic drag, and climb potential energy:
+        </p>
+        <div class="formula-box">
+          P = P_hover · (ρ_0 / ρ)^0.5 + 0.5·ρ·C_D·A·v_air^3 + m·(g + a_z)·v_z
+        </div>
+        <p style="font-size:0.78rem; color:var(--text-dim);">
+          Battery State of Charge is tracked from a 50 Wh battery pack with controlled descent on SoC &lt; 15%.
+        </p>
+      </div>
+
+      <div class="spec-card">
+        <h3>4. Bilinear Terrain Interpolation</h3>
+        <p style="font-size:0.8rem; color:var(--text-dim); margin-bottom:6px;">
+          SRTM 30m grid elevations are bilinearly interpolated at continuous sub-cell positions $(x, y)$:
+        </p>
+        <div class="formula-box">
+          h(x, y) = (1-u)(1-v)·h₀₀ + u(1-v)·h₁₀ + (1-u)v·h₀₁ + uv·h₁₁
+        </div>
+        <p style="font-size:0.78rem; color:var(--text-dim);">
+          Enables smooth clearance accounting and ridge boundary collision prediction.
+        </p>
+      </div>
+    </div>
+  </section>
 
   </div>
 
@@ -445,6 +876,9 @@
     let stepCount = 0;
     let overrideCount = 0;
     let flightTimer = null;
+    let liveEnergyWh = 0.0;
+    let liveBatterySoC = 100.0;
+    let liveTelemetryHistory = [];
 
     // Physics State
     let currentREnv = 0.2;
@@ -549,6 +983,17 @@
       } else {
         sBadge.className = "status-badge status-nominal";
         sBadge.textContent = "ENVELOPE: NOMINAL";
+      }
+
+      const mState = document.getElementById("missionState");
+      if (mState && !isFlying) {
+        if (isUnsafe) {
+          mState.className = "chip-val status-hold";
+          mState.textContent = "SAFETY HOLD (UNFLYABLE)";
+        } else {
+          mState.className = "chip-val status-ready";
+          mState.textContent = "READY";
+        }
       }
 
       drawScene();
@@ -745,6 +1190,7 @@
 
       const stateKey = getDiscretizedState();
       let action = selectAction(stateKey);
+      const intendedAction = action;
       const safetyEnabled = document.getElementById("checkSafety").checked;
 
       let isOverridden = false;
@@ -774,9 +1220,27 @@
         overrideMarkers.push({ ...dronePos });
         document.getElementById("valOverrides").textContent = overrideCount;
 
-        if (currentREnv > 0.95 || currentQ > Q_CRITICAL * 1.3) {
+        const isSevereHover = (currentREnv > 0.95 || currentQ > Q_CRITICAL * 1.3);
+        const mState = document.getElementById("missionState");
+        if (mState) {
+          mState.className = "chip-val status-hold";
+          mState.textContent = isSevereHover ? "SAFETY HOLD (HOVER)" : "RETURNING TO BASE";
+        }
+
+        if (typeof recordSafetyEvent === "function") {
+          recordSafetyEvent(
+            stepCount,
+            overrideReason,
+            ACTION_NAMES[intendedAction] || "Nominal",
+            isSevereHover ? "Hover in place" : "Route to Home Base",
+            isSevereHover ? "Station-Keep Hold" : "Safe Return-to-Home"
+          );
+        }
+
+        if (isSevereHover) {
           // Hover in place
           log(`⚠️ SAFETY OVERRIDE: ${overrideReason} -> Hovering in place`, "log-warn");
+          updateLiveTelemetry(action, true);
           drawScene();
           checkTermination();
           return;
@@ -784,6 +1248,12 @@
           // Route safely toward home base
           log(`⚠️ SAFETY OVERRIDE: ${overrideReason} -> Routing to Base`, "log-warn");
           action = calculateSafeRetreatAction();
+        }
+      } else {
+        const mState = document.getElementById("missionState");
+        if (mState) {
+          mState.className = "chip-val status-flying";
+          mState.textContent = "FLYING (NOMINAL)";
         }
       }
 
@@ -795,6 +1265,11 @@
       // Terrain crash check (if safety is disabled)
       if (newR < 0 || newR >= GRID_SIZE || newC < 0 || newC >= GRID_SIZE || ELEV_MATRIX[newR][newC] >= CRUISE_ALTITUDE) {
         log(`💥 CRASH! Drone collided with mountain ridge at (${newR}, ${newC})`, "log-crit");
+        const mState = document.getElementById("missionState");
+        if (mState) {
+          mState.className = "chip-val status-warn";
+          mState.textContent = "CRASH / COLLISION";
+        }
         stopFlight();
         drawScene();
         return;
@@ -808,8 +1283,74 @@
       document.getElementById("valDronePos").textContent = `(${dronePos.r}, ${dronePos.c})`;
       document.getElementById("valDist").textContent = `${dist.toFixed(1)} cells`;
 
+      updateLiveTelemetry(action, false);
       checkTermination();
       drawScene();
+    }
+
+    function updateLiveTelemetry(action, isHover) {
+      const droneElevNorm = ELEV_MATRIX[dronePos.r][dronePos.c];
+      const altASL = 780.8 + CRUISE_ALTITUDE * (827.5 - 780.8);
+      const clearanceM = Math.max(0.0, (CRUISE_ALTITUDE - droneElevNorm) * (827.5 - 780.8));
+
+      const windSpeed = parseFloat(document.getElementById("sliderWind").value) || 3.0;
+      const vGnd = isHover ? 0.0 : 8.0;
+      const vAir = Math.hypot(vGnd + windSpeed * 0.7, windSpeed * 0.5);
+
+      const pWatts = 245.0 * ((1.225 / Math.max(0.8, currentRho)) ** 0.5) + 0.5 * currentRho * 0.05 * (vAir ** 3);
+      const dtHours = 0.5 / 3600.0;
+      liveEnergyWh += pWatts * dtHours;
+      liveBatterySoC = Math.max(0.0, 100.0 - (liveEnergyWh / 50.0) * 100.0);
+
+      const elAlt = document.getElementById("valAltitude");
+      if (elAlt) elAlt.textContent = `${altASL.toFixed(1)} m ASL`;
+
+      const elClear = document.getElementById("valClearance");
+      if (elClear) {
+        let tag = "SAFE";
+        let col = "var(--accent-green)";
+        if (clearanceM < 15.0) { tag = "CRITICAL"; col = "var(--accent-red)"; }
+        else if (clearanceM < 25.0) { tag = "CAUTION"; col = "var(--accent-yellow)"; }
+        elClear.innerHTML = `<span style="color:${col}">${clearanceM.toFixed(1)} m [${tag}]</span>`;
+      }
+
+      const elAir = document.getElementById("valAirspeed");
+      if (elAir) elAir.textContent = `${vAir.toFixed(1)} m/s`;
+
+      const elGnd = document.getElementById("valGroundSpeed");
+      if (elGnd) elGnd.textContent = `${vGnd.toFixed(1)} m/s`;
+
+      const elPwr = document.getElementById("valPower");
+      if (elPwr) elPwr.textContent = `${pWatts.toFixed(0)} W`;
+
+      const elNrg = document.getElementById("valEnergy");
+      if (elNrg) elNrg.textContent = `${liveEnergyWh.toFixed(2)} Wh`;
+
+      const elBat = document.getElementById("valBattery");
+      if (elBat) elBat.textContent = `${liveBatterySoC.toFixed(1)}%`;
+
+      const elBatBar = document.getElementById("batteryBar");
+      if (elBatBar) {
+        elBatBar.style.width = `${liveBatterySoC}%`;
+        if (liveBatterySoC > 50) elBatBar.style.background = "var(--accent-green)";
+        else if (liveBatterySoC > 20) elBatBar.style.background = "var(--accent-yellow)";
+        else elBatBar.style.background = "var(--accent-red)";
+      }
+
+      const clockEl = document.getElementById("missionClock");
+      if (clockEl) clockEl.textContent = `T+${(stepCount * 0.5).toFixed(1)}s`;
+
+      liveTelemetryHistory.push({
+        step: stepCount,
+        elapsed_time_s: stepCount * 0.5,
+        position_3d: [dronePos.r, dronePos.c, CRUISE_ALTITUDE],
+        terrain_clearance_norm: CRUISE_ALTITUDE - droneElevNorm,
+        battery_soc_pct: liveBatterySoC
+      });
+
+      if (typeof renderAltitudeChart === "function") {
+        renderAltitudeChart(liveTelemetryHistory, liveTelemetryHistory.length - 1);
+      }
     }
 
     function calculateSafeRetreatAction() {
@@ -831,11 +1372,20 @@
     }
 
     function checkTermination() {
+      const mState = document.getElementById("missionState");
       if (dronePos.r === goalPos.r && dronePos.c === goalPos.c) {
         log(`🎯 SUCCESS! Drone reached target goal at (${goalPos.r}, ${goalPos.c})!`, "log-success");
+        if (mState) {
+          mState.className = "chip-val status-success";
+          mState.textContent = "MISSION SUCCESS";
+        }
         stopFlight();
       } else if (stepCount >= 100) {
         log(`⏱️ TIMEOUT: Mission step limit (100) reached.`, "log-warn");
+        if (mState) {
+          mState.className = "chip-val status-warn";
+          mState.textContent = "MISSION TIMEOUT";
+        }
         stopFlight();
       }
     }
@@ -853,6 +1403,11 @@
       document.getElementById("btnPlay").textContent = "⏸ Pause Mission";
       document.getElementById("btnPlay").className = "danger";
       log(`🚀 Mission Started. Navigating toward (${goalPos.r}, ${goalPos.c})`);
+      const mState = document.getElementById("missionState");
+      if (mState) {
+        mState.className = "chip-val status-flying";
+        mState.textContent = "FLYING (NOMINAL)";
+      }
       flightTimer = setInterval(stepSimulation, 200);
     }
 
@@ -868,6 +1423,8 @@
       stepCount = 0;
       overrideCount = 0;
       overrideMarkers = [];
+      liveEnergyWh = 0.0;
+      liveBatterySoC = 100.0;
       document.getElementById("stepCounter").textContent = "Step: 0 / 100";
       document.getElementById("valOverrides").textContent = "0";
 
@@ -897,6 +1454,59 @@
       const dist = Math.hypot(goalPos.r - dronePos.r, goalPos.c - dronePos.c);
       document.getElementById("valDist").textContent = `${dist.toFixed(1)} cells`;
       document.getElementById("btnPlay").textContent = "▶ Start Mission";
+
+      // Reset Telemetry display
+      const droneElevNorm = ELEV_MATRIX[dronePos.r][dronePos.c];
+      const altASL = 780.8 + CRUISE_ALTITUDE * (827.5 - 780.8);
+      const clearanceM = (CRUISE_ALTITUDE - droneElevNorm) * (827.5 - 780.8);
+
+      const elAlt = document.getElementById("valAltitude");
+      if (elAlt) elAlt.textContent = `${altASL.toFixed(1)} m ASL`;
+
+      const elClear = document.getElementById("valClearance");
+      if (elClear) elClear.innerHTML = `<span style="color:var(--accent-green);">${clearanceM.toFixed(1)} m [SAFE]</span>`;
+
+      const elBat = document.getElementById("valBattery");
+      if (elBat) elBat.textContent = "100.0%";
+
+      const elBatBar = document.getElementById("batteryBar");
+      if (elBatBar) {
+        elBatBar.style.width = "100%";
+        elBatBar.style.background = "var(--accent-green)";
+      }
+
+      const elNrg = document.getElementById("valEnergy");
+      if (elNrg) elNrg.textContent = "0.00 Wh";
+
+      const elPwr = document.getElementById("valPower");
+      if (elPwr) elPwr.textContent = "0 W";
+
+      const elAir = document.getElementById("valAirspeed");
+      if (elAir) elAir.textContent = "0.0 m/s";
+
+      const elGnd = document.getElementById("valGroundSpeed");
+      if (elGnd) elGnd.textContent = "0.0 m/s";
+
+      const clockEl = document.getElementById("missionClock");
+      if (clockEl) clockEl.textContent = "T+00.0s";
+
+      const mState = document.getElementById("missionState");
+      if (mState) {
+        mState.className = "chip-val status-ready";
+        mState.textContent = "READY";
+      }
+
+      liveTelemetryHistory = [{
+        step: 0,
+        elapsed_time_s: 0.0,
+        position_3d: [dronePos.r, dronePos.c, CRUISE_ALTITUDE],
+        terrain_clearance_norm: CRUISE_ALTITUDE - droneElevNorm,
+        battery_soc_pct: 100.0
+      }];
+
+      if (typeof renderAltitudeChart === "function") {
+        renderAltitudeChart(liveTelemetryHistory, 0);
+      }
 
       log(`🔄 Mission Reset. Drone at (${dronePos.r}, ${dronePos.c}), Goal at (${goalPos.r}, ${goalPos.c})`);
       drawScene();
